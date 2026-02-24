@@ -6,6 +6,8 @@ rcal is a powerful, lightweight command-line calculator written in Rust. It supp
 
 - Arithmetic operations: addition, subtraction, multiplication, division, modulo, and exponentiation.
 - Advanced mathematics: factorials and a variety of trigonometric and logarithmic functions.
+- Statistics and aggregates: calculate sum, average, minimum, and maximum of multiple values.
+- Programmer tools: bitwise operations (AND, OR, XOR, NOT, shifts) and number format conversion.
 - Variables: assign values to variables and reuse them in subsequent calculations.
 - History: the result of the last successful calculation is automatically stored in the 'ans' variable.
 - Number formats: support for decimal, scientific notation, hexadecimal (0x), and binary (0b).
@@ -56,15 +58,32 @@ cargo run -- "10 + 5 * 2"
 - `^` Exponentiation
 - `!` Factorial (integers only)
 - `=` Assignment
+- `,` Argument separator
+- `;` Expression separator
 
 ### Functions
 
+#### General
 - `sin(x)`, `cos(x)`, `tan(x)`: Trigonometric functions (input in radians).
 - `asin(x)`, `acos(x)`, `atan(x)`: Inverse trigonometric functions.
 - `sqrt(x)`: Square root.
 - `abs(x)`: Absolute value.
 - `ln(x)`: Natural logarithm.
 - `log(x)`: Logarithm base 10.
+
+#### Aggregates
+- `sum(a, b, ...)`: Sum of all arguments.
+- `avg(a, b, ...)`: Average of all arguments.
+- `min(a, b, ...)`: Minimum of all arguments.
+- `max(a, b, ...)`: Maximum of all arguments.
+
+#### Bitwise (Programmer)
+- `and(a, b)`: Bitwise AND.
+- `or(a, b)`: Bitwise OR.
+- `xor(a, b)`: Bitwise XOR.
+- `not(a)`: Bitwise NOT.
+- `lshift(a, n)`: Left shift `a` by `n` bits.
+- `rshift(a, n)`: Right shift `a` by `n` bits.
 - `hex(x)`: Formats the integer result as hexadecimal.
 - `bin(x)`: Formats the integer result as binary.
 
@@ -91,12 +110,20 @@ Using variables and 'ans':
 = 39.269908169872415
 ```
 
-Using hexadecimal and binary:
+Using aggregates:
+```text
+> avg(10, 20, 30, 40)
+= 25
+> max(5, 12, 3)
+= 12
+```
+
+Using bitwise operations and formats:
 ```text
 > 0xff + 0b1010
 = 265
-> hex(ans)
-= 0x109
+> hex(and(ans, 0xf))
+= 0x9
 ```
 
 Using degrees:
