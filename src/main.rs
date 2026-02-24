@@ -94,52 +94,6 @@ fn tokenize(input: &str) -> Result<Vec<Token>, (String, usize)> {
             '0'..='9' | '.' => {
                 let start_pos = i;
                 let mut num_str = String::new();
-                
-                if c == '0' {
-                    chars.next();
-                    if let Some(&(_, next_c)) = chars.peek() {
-                        if next_c == 'x' || next_c == 'X' {
-                            chars.next();
-                            let mut hex_str = String::new();
-                            while let Some(&(_, ch)) = chars.peek() {
-                                if ch.is_ascii_hexdigit() {
-                                    hex_str.push(ch);
-                                    chars.next();
-                                } else {
-                                    break;
-                                }
-                            }
-                            if let Ok(num) = u64::from_str_radix(&hex_str, 16) {
-                                tokens.push(Token { kind: TokenKind::Number(num as f64), pos: start_pos });
-                                continue;
-                            } else {
-                                return Err((format!("LexerError: Invalid hex format '0x{}'", hex_str), start_pos));
-                            }
-                        } else if next_c == 'b' || next_c == 'B' {
-                            chars.next();
-                            let mut bin_str = String::new();
-                            while let Some(&(_, ch)) = chars.peek() {
-                                if ch == '0' || ch == '1' {
-                                    bin_str.push(ch);
-                                    chars.next();
-                                } else {
-                                    break;
-                                }
-                            }
-                            if let Ok(num) = u64::from_str_radix(&bin_str, 2) {
-                                tokens.push(Token { kind: TokenKind::Number(num as f64), pos: start_pos });
-                                continue;
-                            } else {
-                                return Err((format!("LexerError: Invalid binary format '0b{}'", bin_str), start_pos));
-                            }
-                        }
-                        num_str.push('0');
-                    } else {
-                        tokens.push(Token { kind: TokenKind::Number(0.0), pos: start_pos });
-                        continue;
-                    }
-                }
-
                 while let Some(&(_, ch)) = chars.peek() {
                     if ch.is_ascii_digit() || ch == '.' || ch == 'e' || ch == 'E' {
                         num_str.push(ch);
@@ -153,6 +107,9 @@ fn tokenize(input: &str) -> Result<Vec<Token>, (String, usize)> {
                     }
                 }
                 if let Ok(num) = num_str.parse::<f64>() {
+                    if num.is_infinite() {
+                        return Err((format!("LexerError: Number '{}' is too large (overflow)", num_str), start_pos));
+                    }
                     tokens.push(Token { kind: TokenKind::Number(num), pos: start_pos });
                 } else {
                     return Err((format!("LexerError: Invalid number format '{}'", num_str), start_pos));
@@ -408,7 +365,12 @@ fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (String
                     Ok(val.sqrt())
                 }
                 "abs" => Ok(val.abs()),
-                "hex" | "bin" => Ok(val),
+                "hex" | "bin" => {
+                    if val < 0.0 || val > u64::MAX as f64 || val.fract() != 0.0 {
+                        return Err(("Math Error: Value out of range for hex/bin (0 to 2^64-1, integers only)".to_string(), pos));
+                    }
+                    Ok(val)
+                }
                 "ln" => {
                     if val <= 0.0 {
                         return Err(("Math Error: Natural logarithm of zero or negative number".to_string(), pos));
@@ -424,9 +386,21 @@ fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (String
                 _ => Err((format!("Math Error: Unknown function '{}'", name), pos)),
             }
         }
-        Expr::Add(l, r) => Ok(evaluate(l, vars)? + evaluate(r, vars)?),
-        Expr::Subtract(l, r) => Ok(evaluate(l, vars)? - evaluate(r, vars)?),
-        Expr::Multiply(l, r) => Ok(evaluate(l, vars)? * evaluate(r, vars)?),
+        Expr::Add(l, r) => {
+            let res = evaluate(l, vars)? + evaluate(r, vars)?;
+            if res.is_infinite() { return Err(("Math Error: Overflow".to_string(), pos)); }
+            Ok(res)
+        }
+        Expr::Subtract(l, r) => {
+            let res = evaluate(l, vars)? - evaluate(r, vars)?;
+            if res.is_infinite() { return Err(("Math Error: Overflow".to_string(), pos)); }
+            Ok(res)
+        }
+        Expr::Multiply(l, r) => {
+            let res = evaluate(l, vars)? * evaluate(r, vars)?;
+            if res.is_infinite() { return Err(("Math Error: Overflow".to_string(), pos)); }
+            Ok(res)
+        }
         Expr::Divide(l, r) => {
             let left = evaluate(l, vars)?;
             let right = evaluate(r, vars)?;
@@ -487,7 +461,7 @@ fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
             println!("  ; (separate multiple expressions)");
             println!("  = (assignment, e.g., x = 10)");
             println!("\nAvailable Functions:");
-            println!("  sin, cos, tan, asin, acos, atan, sqrt, abs, ln, log");
+            println!("  sin, cos, tan, asin, acos, atan, sqrt, abs, hex, bin, ln, log");
             println!("\nAvailable Constants:");
             println!("  pi, e, deg (use as '90 deg' or '90 * deg')");
             println!("\nSpecial Variables:");
