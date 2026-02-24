@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 
 #[derive(Debug, Clone, PartialEq)]
-enum Token {
+enum TokenKind {
     Number(f64),
     Identifier(String),
     Plus,
@@ -19,110 +19,127 @@ enum Token {
     EOF,
 }
 
-enum Expr {
-    Number(f64),
-    Variable(String),
-    Assign(String, Box<Expr>),
-    Function(String, Box<Expr>),
-    Add(Box<Expr>, Box<Expr>),
-    Subtract(Box<Expr>, Box<Expr>),
-    Multiply(Box<Expr>, Box<Expr>),
-    Divide(Box<Expr>, Box<Expr>),
-    Modulo(Box<Expr>, Box<Expr>),
-    Power(Box<Expr>, Box<Expr>),
-    Factorial(Box<Expr>),
-    UnaryMinus(Box<Expr>),
-    UnaryPlus(Box<Expr>),
+#[derive(Debug, Clone)]
+struct Token {
+    kind: TokenKind,
+    pos: usize,
 }
 
-fn tokenize(input: &str) -> Result<Vec<Token>, String> {
+fn tokenize(input: &str) -> Result<Vec<Token>, (String, usize)> {
     let mut tokens = Vec::new();
-    let mut chars = input.chars().peekable();
+    let mut chars = input.char_indices().peekable();
 
-    while let Some(&c) = chars.peek() {
+    while let Some(&(i, c)) = chars.peek() {
         match c {
             ' ' | '\n' | '\r' | '\t' => {
                 chars.next();
             }
             '+' => {
-                tokens.push(Token::Plus);
+                tokens.push(Token { kind: TokenKind::Plus, pos: i });
                 chars.next();
             }
             '-' => {
-                tokens.push(Token::Minus);
+                tokens.push(Token { kind: TokenKind::Minus, pos: i });
                 chars.next();
             }
             '*' => {
-                tokens.push(Token::Multiply);
+                tokens.push(Token { kind: TokenKind::Multiply, pos: i });
                 chars.next();
             }
             '/' => {
-                tokens.push(Token::Divide);
+                tokens.push(Token { kind: TokenKind::Divide, pos: i });
                 chars.next();
             }
             '%' => {
-                tokens.push(Token::Modulo);
+                tokens.push(Token { kind: TokenKind::Modulo, pos: i });
                 chars.next();
             }
             '^' => {
-                tokens.push(Token::Power);
+                tokens.push(Token { kind: TokenKind::Power, pos: i });
                 chars.next();
             }
             '!' => {
-                tokens.push(Token::Factorial);
+                tokens.push(Token { kind: TokenKind::Factorial, pos: i });
                 chars.next();
             }
             '=' => {
-                tokens.push(Token::Assign);
+                tokens.push(Token { kind: TokenKind::Assign, pos: i });
                 chars.next();
             }
             ';' => {
-                tokens.push(Token::Semicolon);
+                tokens.push(Token { kind: TokenKind::Semicolon, pos: i });
                 chars.next();
             }
             '(' => {
-                tokens.push(Token::LParen);
+                tokens.push(Token { kind: TokenKind::LParen, pos: i });
                 chars.next();
             }
             ')' => {
-                tokens.push(Token::RParen);
+                tokens.push(Token { kind: TokenKind::RParen, pos: i });
                 chars.next();
             }
             'a'..='z' | 'A'..='Z' | '_' => {
+                let start_pos = i;
                 let mut ident = String::new();
-                while let Some(&ch) = chars.peek() {
+                while let Some(&(_, ch)) = chars.peek() {
                     if ch.is_alphanumeric() || ch == '_' {
-                        ident.push(chars.next().unwrap());
+                        ident.push(ch);
+                        chars.next();
                     } else {
                         break;
                     }
                 }
-                tokens.push(Token::Identifier(ident));
+                tokens.push(Token { kind: TokenKind::Identifier(ident), pos: start_pos });
             }
             '0'..='9' | '.' => {
+                let start_pos = i;
                 let mut num_str = String::new();
-                while let Some(&ch) = chars.peek() {
+                while let Some(&(_, ch)) = chars.peek() {
                     if ch.is_ascii_digit() || ch == '.' || ch == 'e' || ch == 'E' {
-                        let current = chars.next().unwrap();
-                        num_str.push(current);
-                        if (current == 'e' || current == 'E') && (chars.peek() == Some(&'-') || chars.peek() == Some(&'+')) {
-                            num_str.push(chars.next().unwrap());
+                        num_str.push(ch);
+                        chars.next();
+                        if (ch == 'e' || ch == 'E') && chars.peek().map_or(false, |&(_, next_c)| next_c == '-' || next_c == '+') {
+                            let (_, sign) = chars.next().unwrap();
+                            num_str.push(sign);
                         }
                     } else {
                         break;
                     }
                 }
                 if let Ok(num) = num_str.parse::<f64>() {
-                    tokens.push(Token::Number(num));
+                    tokens.push(Token { kind: TokenKind::Number(num), pos: start_pos });
                 } else {
-                    return Err(format!("LexerError: Invalid number format '{}'", num_str));
+                    return Err((format!("LexerError: Invalid number format '{}'", num_str), start_pos));
                 }
             }
-            _ => return Err(format!("LexerError: Unexpected character '{}'", c)),
+            _ => return Err((format!("LexerError: Unexpected character '{}'", c), i)),
         }
     }
-    tokens.push(Token::EOF);
+    tokens.push(Token { kind: TokenKind::EOF, pos: input.len() });
     Ok(tokens)
+}
+
+#[derive(Debug)]
+struct Node {
+    expr: Expr,
+    pos: usize,
+}
+
+#[derive(Debug)]
+enum Expr {
+    Number(f64),
+    Variable(String),
+    Assign(String, Box<Node>),
+    Function(String, Box<Node>),
+    Add(Box<Node>, Box<Node>),
+    Subtract(Box<Node>, Box<Node>),
+    Multiply(Box<Node>, Box<Node>),
+    Divide(Box<Node>, Box<Node>),
+    Modulo(Box<Node>, Box<Node>),
+    Power(Box<Node>, Box<Node>),
+    Factorial(Box<Node>),
+    UnaryMinus(Box<Node>),
+    UnaryPlus(Box<Node>),
 }
 
 struct Parser {
@@ -136,72 +153,77 @@ impl Parser {
     }
 
     fn current(&self) -> &Token {
-        self.tokens.get(self.pos).unwrap_or(&Token::EOF)
+        self.tokens.get(self.pos).unwrap_or(&self.tokens[self.tokens.len() - 1])
     }
 
     fn peek(&self) -> &Token {
-        self.tokens.get(self.pos + 1).unwrap_or(&Token::EOF)
+        self.tokens.get(self.pos + 1).unwrap_or(&self.tokens[self.tokens.len() - 1])
     }
 
     fn consume(&mut self) {
         self.pos += 1;
     }
 
-    fn parse_expr(&mut self) -> Result<Box<Expr>, String> {
-        if let Token::Identifier(name) = self.current().clone() {
-            if self.peek() == &Token::Assign {
-                self.consume();
-                self.consume();
+    fn parse_expr(&mut self) -> Result<Box<Node>, (String, usize)> {
+        if let TokenKind::Identifier(name) = &self.current().kind {
+            if self.peek().kind == TokenKind::Assign {
+                let name = name.clone();
+                let pos = self.current().pos;
+                self.consume(); // name
+                self.consume(); // =
                 let right = self.parse_expr()?;
-                return Ok(Box::new(Expr::Assign(name.to_lowercase(), right)));
+                return Ok(Box::new(Node { expr: Expr::Assign(name.to_lowercase(), right), pos }));
             }
         }
         self.parse_additive()
     }
 
-    fn parse_additive(&mut self) -> Result<Box<Expr>, String> {
+    fn parse_additive(&mut self) -> Result<Box<Node>, (String, usize)> {
         let mut left = self.parse_term()?;
 
-        while self.current() == &Token::Plus || self.current() == &Token::Minus {
-            let op = self.current().clone();
+        while self.current().kind == TokenKind::Plus || self.current().kind == TokenKind::Minus {
+            let op = self.current().kind.clone();
+            let pos = self.current().pos;
             self.consume();
             let right = self.parse_term()?;
 
-            if op == Token::Plus {
-                left = Box::new(Expr::Add(left, right));
+            if op == TokenKind::Plus {
+                left = Box::new(Node { expr: Expr::Add(left, right), pos });
             } else {
-                left = Box::new(Expr::Subtract(left, right));
+                left = Box::new(Node { expr: Expr::Subtract(left, right), pos });
             }
         }
         Ok(left)
     }
 
-    fn parse_term(&mut self) -> Result<Box<Expr>, String> {
+    fn parse_term(&mut self) -> Result<Box<Node>, (String, usize)> {
         let mut left = self.parse_power()?;
 
         loop {
-            match self.current() {
-                Token::Multiply | Token::Divide | Token::Modulo => {
-                    let op = self.current().clone();
+            match self.current().kind {
+                TokenKind::Multiply | TokenKind::Divide | TokenKind::Modulo => {
+                    let op = self.current().kind.clone();
+                    let pos = self.current().pos;
                     self.consume();
                     let right = self.parse_power()?;
 
                     match op {
-                        Token::Multiply => {
-                            left = Box::new(Expr::Multiply(left, right));
+                        TokenKind::Multiply => {
+                            left = Box::new(Node { expr: Expr::Multiply(left, right), pos });
                         }
-                        Token::Divide => {
-                            left = Box::new(Expr::Divide(left, right));
+                        TokenKind::Divide => {
+                            left = Box::new(Node { expr: Expr::Divide(left, right), pos });
                         }
-                        Token::Modulo => {
-                            left = Box::new(Expr::Modulo(left, right));
+                        TokenKind::Modulo => {
+                            left = Box::new(Node { expr: Expr::Modulo(left, right), pos });
                         }
                         _ => unreachable!(),
                     }
                 }
-                Token::LParen | Token::Identifier(_) | Token::Number(_) => {
+                TokenKind::LParen | TokenKind::Identifier(_) | TokenKind::Number(_) => {
+                    let pos = self.current().pos;
                     let right = self.parse_power()?;
-                    left = Box::new(Expr::Multiply(left, right));
+                    left = Box::new(Node { expr: Expr::Multiply(left, right), pos });
                 }
                 _ => break,
             }
@@ -209,94 +231,98 @@ impl Parser {
         Ok(left)
     }
 
-    fn parse_power(&mut self) -> Result<Box<Expr>, String> {
+    fn parse_power(&mut self) -> Result<Box<Node>, (String, usize)> {
         let left = self.parse_postfix()?;
 
-        if self.current() == &Token::Power {
+        if self.current().kind == TokenKind::Power {
+            let pos = self.current().pos;
             self.consume();
             let right = self.parse_power()?;
-            Ok(Box::new(Expr::Power(left, right)))
+            Ok(Box::new(Node { expr: Expr::Power(left, right), pos }))
         } else {
             Ok(left)
         }
     }
 
-    fn parse_postfix(&mut self) -> Result<Box<Expr>, String> {
+    fn parse_postfix(&mut self) -> Result<Box<Node>, (String, usize)> {
         let mut left = self.parse_unary()?;
 
-        while self.current() == &Token::Factorial {
+        while self.current().kind == TokenKind::Factorial {
+            let pos = self.current().pos;
             self.consume();
-            left = Box::new(Expr::Factorial(left));
+            left = Box::new(Node { expr: Expr::Factorial(left), pos });
         }
         Ok(left)
     }
 
-    fn parse_unary(&mut self) -> Result<Box<Expr>, String> {
-        match self.current() {
-            Token::Minus => {
+    fn parse_unary(&mut self) -> Result<Box<Node>, (String, usize)> {
+        let pos = self.current().pos;
+        match self.current().kind {
+            TokenKind::Minus => {
                 self.consume();
                 let expr = self.parse_unary()?;
-                Ok(Box::new(Expr::UnaryMinus(expr)))
+                Ok(Box::new(Node { expr: Expr::UnaryMinus(expr), pos }))
             }
-            Token::Plus => {
+            TokenKind::Plus => {
                 self.consume();
                 let expr = self.parse_unary()?;
-                Ok(Box::new(Expr::UnaryPlus(expr)))
+                Ok(Box::new(Node { expr: Expr::UnaryPlus(expr), pos }))
             }
             _ => self.parse_factor(),
         }
     }
 
-    fn parse_factor(&mut self) -> Result<Box<Expr>, String> {
-        match self.current().clone() {
-            Token::Number(n) => {
+    fn parse_factor(&mut self) -> Result<Box<Node>, (String, usize)> {
+        let pos = self.current().pos;
+        match self.current().kind.clone() {
+            TokenKind::Number(n) => {
                 self.consume();
-                Ok(Box::new(Expr::Number(n)))
+                Ok(Box::new(Node { expr: Expr::Number(n), pos }))
             }
-            Token::Identifier(name) => {
+            TokenKind::Identifier(name) => {
                 self.consume();
                 let name = name.to_lowercase();
-                if self.current() == &Token::LParen {
+                if self.current().kind == TokenKind::LParen {
                     self.consume();
                     let arg = self.parse_expr()?;
-                    if self.current() == &Token::RParen {
+                    if self.current().kind == TokenKind::RParen {
                         self.consume();
-                        Ok(Box::new(Expr::Function(name, arg)))
+                        Ok(Box::new(Node { expr: Expr::Function(name, arg), pos }))
                     } else {
-                        Err(
-                            "SyntaxError: Lacking closing parenthesis after function argument"
-                                .to_string(),
-                        )
+                        Err((
+                            "SyntaxError: Lacking closing parenthesis after function argument".to_string(),
+                            self.current().pos
+                        ))
                     }
                 } else {
-                    Ok(Box::new(Expr::Variable(name)))
+                    Ok(Box::new(Node { expr: Expr::Variable(name), pos }))
                 }
             }
-            Token::LParen => {
+            TokenKind::LParen => {
                 self.consume();
                 let expr = self.parse_expr()?;
-                if self.current() == &Token::RParen {
+                if self.current().kind == TokenKind::RParen {
                     self.consume();
                     Ok(expr)
                 } else {
-                    Err("SyntaxError: Lacking closing parenthesis".to_string())
+                    Err(("SyntaxError: Lacking closing parenthesis".to_string(), self.current().pos))
                 }
             }
-            Token::EOF => Err("Unexpected ending of input".to_string()),
-            _ => Err(format!(
+            TokenKind::EOF => Err(("Unexpected ending of input".to_string(), self.current().pos)),
+            _ => Err((format!(
                 "SyntaxError: Unexpected token {:?}",
-                self.current()
-            )),
+                self.current().kind
+            ), self.current().pos)),
         }
     }
 }
 
-fn factorial(n: f64) -> Result<f64, String> {
+fn factorial(n: f64, pos: usize) -> Result<f64, (String, usize)> {
     if n < 0.0 || n.fract() != 0.0 {
-        return Err("Math Error: Factorial only defined for non-negative integers".to_string());
+        return Err(("Math Error: Factorial only defined for non-negative integers".to_string(), pos));
     }
     if n > 170.0 {
-        return Err("Math Error: Factorial overflow (too large)".to_string());
+        return Err(("Math Error: Factorial overflow (too large)".to_string(), pos));
     }
     let mut res = 1.0;
     for i in 1..=(n as u64) {
@@ -305,14 +331,15 @@ fn factorial(n: f64) -> Result<f64, String> {
     Ok(res)
 }
 
-fn evaluate(expr: &Expr, vars: &mut HashMap<String, f64>) -> Result<f64, String> {
-    match expr {
+fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (String, usize)> {
+    let pos = node.pos;
+    match &node.expr {
         Expr::Number(n) => Ok(*n),
         Expr::Variable(name) => {
             if name == "pi" { return Ok(std::f64::consts::PI); }
             if name == "e" { return Ok(std::f64::consts::E); }
             if name == "deg" { return Ok(std::f64::consts::PI / 180.0); }
-            vars.get(name).copied().ok_or_else(|| format!("Math Error: Unknown variable '{}'", name))
+            vars.get(name).copied().ok_or_else(|| (format!("Math Error: Unknown variable '{}'", name), pos))
         }
         Expr::Assign(name, val_expr) => {
             let val = evaluate(val_expr, vars)?;
@@ -330,26 +357,24 @@ fn evaluate(expr: &Expr, vars: &mut HashMap<String, f64>) -> Result<f64, String>
                 "atan" => Ok(val.atan()),
                 "sqrt" => {
                     if val < 0.0 {
-                        return Err("Math Error: Square root of negative number".to_string());
+                        return Err(("Math Error: Square root of negative number".to_string(), pos));
                     }
                     Ok(val.sqrt())
                 }
                 "abs" => Ok(val.abs()),
                 "ln" => {
                     if val <= 0.0 {
-                        return Err(
-                            "Math Error: Natural logarithm of zero or negative number".to_string()
-                        );
+                        return Err(("Math Error: Natural logarithm of zero or negative number".to_string(), pos));
                     }
                     Ok(val.ln())
                 }
                 "log" => {
                     if val <= 0.0 {
-                        return Err("Math Error: Logarithm of zero or negative number".to_string());
+                        return Err(("Math Error: Logarithm of zero or negative number".to_string(), pos));
                     }
                     Ok(val.log10())
                 }
-                _ => Err(format!("Math Error: Unknown function '{}'", name)),
+                _ => Err((format!("Math Error: Unknown function '{}'", name), pos)),
             }
         }
         Expr::Add(l, r) => Ok(evaluate(l, vars)? + evaluate(r, vars)?),
@@ -359,11 +384,11 @@ fn evaluate(expr: &Expr, vars: &mut HashMap<String, f64>) -> Result<f64, String>
             let left = evaluate(l, vars)?;
             let right = evaluate(r, vars)?;
             if right == 0.0 {
-                return Err("Math Error: Division by zero".to_string());
+                return Err(("Math Error: Division by zero".to_string(), pos));
             }
             let res = left / right;
             if res.is_infinite() {
-                return Err("Math Error: Overflow".to_string());
+                return Err(("Math Error: Overflow".to_string(), pos));
             }
             Ok(res)
         }
@@ -371,7 +396,7 @@ fn evaluate(expr: &Expr, vars: &mut HashMap<String, f64>) -> Result<f64, String>
             let left = evaluate(l, vars)?;
             let right = evaluate(r, vars)?;
             if right == 0.0 {
-                return Err("Math Error: Modulo by zero".to_string());
+                return Err(("Math Error: Modulo by zero".to_string(), pos));
             }
             Ok(left % right)
         }
@@ -380,20 +405,23 @@ fn evaluate(expr: &Expr, vars: &mut HashMap<String, f64>) -> Result<f64, String>
             let right = evaluate(r, vars)?;
             let res = left.powf(right);
             if res.is_infinite() {
-                return Err("Math Error: Overflow (Result too large)".to_string());
+                return Err(("Math Error: Overflow (Result too large)".to_string(), pos));
             }
             if res.is_nan() {
-                return Err(
-                    "Math Error: Invalid operation (e.g. negative base with fractional exponent)"
-                        .to_string(),
-                );
+                return Err(("Math Error: Invalid operation (e.g. negative base with fractional exponent)".to_string(), pos));
             }
             Ok(res)
         }
-        Expr::Factorial(e) => factorial(evaluate(e, vars)?),
+        Expr::Factorial(e) => factorial(evaluate(e, vars)?, pos),
         Expr::UnaryMinus(e) => Ok(-evaluate(e, vars)?),
         Expr::UnaryPlus(e) => evaluate(e, vars),
     }
+}
+
+fn print_error(input: &str, msg: &str, pos: usize) {
+    println!("{}", input);
+    println!("{}^-- {}", " ".repeat(pos), msg);
+    println!();
 }
 
 fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
@@ -405,10 +433,27 @@ fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
             continue;
         }
 
+        if trimmed.eq_ignore_ascii_case("help") {
+            println!("rcal v{}", env!("CARGO_PKG_VERSION"));
+            println!("Available Operations:");
+            println!("  +, -, *, /, %, ^ (power), ! (factorial)");
+            println!("  ; (separate multiple expressions)");
+            println!("  = (assignment, e.g., x = 10)");
+            println!("\nAvailable Functions:");
+            println!("  sin, cos, tan, asin, acos, atan, sqrt, abs, ln, log");
+            println!("\nAvailable Constants:");
+            println!("  pi, e, deg (use as '90 deg' or '90 * deg')");
+            println!("\nSpecial Variables:");
+            println!("  ans (stores the result of the last calculation)");
+            println!("\nCommands:");
+            println!("  help, exit, quit\n");
+            continue;
+        }
+
         let tokens = match tokenize(trimmed) {
             Ok(t) => t,
-            Err(e) => {
-                println!("{}\n", e);
+            Err((e, pos)) => {
+                print_error(trimmed, &e, pos);
                 return;
             }
         };
@@ -417,8 +462,8 @@ fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
 
         match parser.parse_expr() {
             Ok(ast) => {
-                if parser.current() != &Token::EOF {
-                    println!("SyntaxError: Unexpected character on end of expression\n");
+                if parser.current().kind != TokenKind::EOF {
+                    print_error(trimmed, "SyntaxError: Unexpected character on end of expression", parser.current().pos);
                     return;
                 }
 
@@ -427,15 +472,17 @@ fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
                         let normalized = if result == 0.0 { 0.0 } else { result };
                         vars.insert("ans".to_string(), normalized);
 
-                        if !matches!(*ast, Expr::Assign(_, _)) {
+                        if !matches!(ast.expr, Expr::Assign(_, _)) {
                             println!("= {}\n", normalized);
                         }
                     }
-                    Err(e) => println!("{}\n", e),
+                    Err((e, pos)) => {
+                        print_error(trimmed, &e, pos);
+                    }
                 }
             }
-            Err(e) => {
-                println!("{}\n", e);
+            Err((e, pos)) => {
+                print_error(trimmed, &e, pos);
             }
         }
     }
