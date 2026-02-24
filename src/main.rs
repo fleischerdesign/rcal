@@ -11,6 +11,7 @@ enum Token {
     Divide,
     Modulo,
     Power,
+    Factorial,
     Assign,
     Semicolon,
     LParen,
@@ -29,6 +30,7 @@ enum Expr {
     Divide(Box<Expr>, Box<Expr>),
     Modulo(Box<Expr>, Box<Expr>),
     Power(Box<Expr>, Box<Expr>),
+    Factorial(Box<Expr>),
     UnaryMinus(Box<Expr>),
     UnaryPlus(Box<Expr>),
 }
@@ -66,6 +68,10 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
                 tokens.push(Token::Power);
                 chars.next();
             }
+            '!' => {
+                tokens.push(Token::Factorial);
+                chars.next();
+            }
             '=' => {
                 tokens.push(Token::Assign);
                 chars.next();
@@ -96,14 +102,20 @@ fn tokenize(input: &str) -> Result<Vec<Token>, String> {
             '0'..='9' | '.' => {
                 let mut num_str = String::new();
                 while let Some(&ch) = chars.peek() {
-                    if ch.is_ascii_digit() || ch == '.' {
-                        num_str.push(chars.next().unwrap());
+                    if ch.is_ascii_digit() || ch == '.' || ch == 'e' || ch == 'E' {
+                        let current = chars.next().unwrap();
+                        num_str.push(current);
+                        if (current == 'e' || current == 'E') && (chars.peek() == Some(&'-') || chars.peek() == Some(&'+')) {
+                            num_str.push(chars.next().unwrap());
+                        }
                     } else {
                         break;
                     }
                 }
                 if let Ok(num) = num_str.parse::<f64>() {
                     tokens.push(Token::Number(num));
+                } else {
+                    return Err(format!("LexerError: Invalid number format '{}'", num_str));
                 }
             }
             _ => return Err(format!("LexerError: Unexpected character '{}'", c)),
@@ -198,7 +210,7 @@ impl Parser {
     }
 
     fn parse_power(&mut self) -> Result<Box<Expr>, String> {
-        let left = self.parse_unary()?;
+        let left = self.parse_postfix()?;
 
         if self.current() == &Token::Power {
             self.consume();
@@ -207,6 +219,16 @@ impl Parser {
         } else {
             Ok(left)
         }
+    }
+
+    fn parse_postfix(&mut self) -> Result<Box<Expr>, String> {
+        let mut left = self.parse_unary()?;
+
+        while self.current() == &Token::Factorial {
+            self.consume();
+            left = Box::new(Expr::Factorial(left));
+        }
+        Ok(left)
     }
 
     fn parse_unary(&mut self) -> Result<Box<Expr>, String> {
@@ -267,6 +289,20 @@ impl Parser {
             )),
         }
     }
+}
+
+fn factorial(n: f64) -> Result<f64, String> {
+    if n < 0.0 || n.fract() != 0.0 {
+        return Err("Math Error: Factorial only defined for non-negative integers".to_string());
+    }
+    if n > 170.0 {
+        return Err("Math Error: Factorial overflow (too large)".to_string());
+    }
+    let mut res = 1.0;
+    for i in 1..=(n as u64) {
+        res *= i as f64;
+    }
+    Ok(res)
 }
 
 fn evaluate(expr: &Expr, vars: &mut HashMap<String, f64>) -> Result<f64, String> {
@@ -354,6 +390,7 @@ fn evaluate(expr: &Expr, vars: &mut HashMap<String, f64>) -> Result<f64, String>
             }
             Ok(res)
         }
+        Expr::Factorial(e) => factorial(evaluate(e, vars)?),
         Expr::UnaryMinus(e) => Ok(-evaluate(e, vars)?),
         Expr::UnaryPlus(e) => evaluate(e, vars),
     }
