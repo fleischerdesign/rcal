@@ -14,6 +14,7 @@ enum TokenKind {
     Factorial,
     Assign,
     Semicolon,
+    Comma,
     LParen,
     RParen,
     EOF,
@@ -70,6 +71,10 @@ fn tokenize(input: &str) -> Result<Vec<Token>, (String, usize)> {
                 tokens.push(Token { kind: TokenKind::Semicolon, pos: i });
                 chars.next();
             }
+            ',' => {
+                tokens.push(Token { kind: TokenKind::Comma, pos: i });
+                chars.next();
+            }
             '(' => {
                 tokens.push(Token { kind: TokenKind::LParen, pos: i });
                 chars.next();
@@ -94,6 +99,51 @@ fn tokenize(input: &str) -> Result<Vec<Token>, (String, usize)> {
             '0'..='9' | '.' => {
                 let start_pos = i;
                 let mut num_str = String::new();
+                if c == '0' {
+                    chars.next();
+                    if let Some(&(_, next_c)) = chars.peek() {
+                        if next_c == 'x' || next_c == 'X' {
+                            chars.next();
+                            let mut hex_str = String::new();
+                            while let Some(&(_, ch)) = chars.peek() {
+                                if ch.is_ascii_hexdigit() {
+                                    hex_str.push(ch);
+                                    chars.next();
+                                } else {
+                                    break;
+                                }
+                            }
+                            if let Ok(num) = u64::from_str_radix(&hex_str, 16) {
+                                tokens.push(Token { kind: TokenKind::Number(num as f64), pos: start_pos });
+                                continue;
+                            } else {
+                                return Err((format!("LexerError: Invalid hex format '0x{}'", hex_str), start_pos));
+                            }
+                        } else if next_c == 'b' || next_c == 'B' {
+                            chars.next();
+                            let mut bin_str = String::new();
+                            while let Some(&(_, ch)) = chars.peek() {
+                                if ch == '0' || ch == '1' {
+                                    bin_str.push(ch);
+                                    chars.next();
+                                } else {
+                                    break;
+                                }
+                            }
+                            if let Ok(num) = u64::from_str_radix(&bin_str, 2) {
+                                tokens.push(Token { kind: TokenKind::Number(num as f64), pos: start_pos });
+                                continue;
+                            } else {
+                                return Err((format!("LexerError: Invalid binary format '0b{}'", bin_str), start_pos));
+                            }
+                        }
+                        num_str.push('0');
+                    } else {
+                        tokens.push(Token { kind: TokenKind::Number(0.0), pos: start_pos });
+                        continue;
+                    }
+                }
+
                 while let Some(&(_, ch)) = chars.peek() {
                     if ch.is_ascii_digit() || ch == '.' || ch == 'e' || ch == 'E' {
                         num_str.push(ch);
@@ -133,7 +183,7 @@ enum Expr {
     Number(f64),
     Variable(String),
     Assign(String, Box<Node>),
-    Function(String, Box<Node>),
+    Function(String, Vec<Box<Node>>),
     Add(Box<Node>, Box<Node>),
     Subtract(Box<Node>, Box<Node>),
     Multiply(Box<Node>, Box<Node>),
@@ -287,13 +337,23 @@ impl Parser {
                 let name = name.to_lowercase();
                 if self.current().kind == TokenKind::LParen {
                     self.consume();
-                    let arg = self.parse_expr()?;
+                    let mut args = Vec::new();
+                    if self.current().kind != TokenKind::RParen {
+                        loop {
+                            args.push(self.parse_expr()?);
+                            if self.current().kind == TokenKind::Comma {
+                                self.consume();
+                            } else {
+                                break;
+                            }
+                        }
+                    }
                     if self.current().kind == TokenKind::RParen {
                         self.consume();
-                        Ok(Box::new(Node { expr: Expr::Function(name, arg), pos }))
+                        Ok(Box::new(Node { expr: Expr::Function(name, args), pos }))
                     } else {
                         Err((
-                            "SyntaxError: Lacking closing parenthesis after function argument".to_string(),
+                            "SyntaxError: Lacking closing parenthesis after function arguments".to_string(),
                             self.current().pos
                         ))
                     }
@@ -349,41 +409,66 @@ fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (String
             vars.insert(name.clone(), val);
             Ok(val)
         }
-        Expr::Function(name, arg) => {
-            let val = evaluate(arg, vars)?;
+        Expr::Function(name, args) => {
+            let mut vals = Vec::new();
+            for arg in args {
+                vals.push(evaluate(arg, vars)?);
+            }
+            
             match name.as_str() {
-                "sin" => Ok(val.sin()),
-                "cos" => Ok(val.cos()),
-                "tan" => Ok(val.tan()),
-                "asin" => Ok(val.asin()),
-                "acos" => Ok(val.acos()),
-                "atan" => Ok(val.atan()),
-                "sqrt" => {
-                    if val < 0.0 {
+                "sin" if vals.len() == 1 => Ok(vals[0].sin()),
+                "cos" if vals.len() == 1 => Ok(vals[0].cos()),
+                "tan" if vals.len() == 1 => Ok(vals[0].tan()),
+                "asin" if vals.len() == 1 => Ok(vals[0].asin()),
+                "acos" if vals.len() == 1 => Ok(vals[0].acos()),
+                "atan" if vals.len() == 1 => Ok(vals[0].atan()),
+                "sqrt" if vals.len() == 1 => {
+                    if vals[0] < 0.0 {
                         return Err(("Math Error: Square root of negative number".to_string(), pos));
                     }
-                    Ok(val.sqrt())
+                    Ok(vals[0].sqrt())
                 }
-                "abs" => Ok(val.abs()),
-                "hex" | "bin" => {
-                    if val < 0.0 || val > u64::MAX as f64 || val.fract() != 0.0 {
+                "abs" if vals.len() == 1 => Ok(vals[0].abs()),
+                "hex" | "bin" if vals.len() == 1 => {
+                    if vals[0] < 0.0 || vals[0] > u64::MAX as f64 || vals[0].fract() != 0.0 {
                         return Err(("Math Error: Value out of range for hex/bin (0 to 2^64-1, integers only)".to_string(), pos));
                     }
-                    Ok(val)
+                    Ok(vals[0])
                 }
-                "ln" => {
-                    if val <= 0.0 {
+                "ln" if vals.len() == 1 => {
+                    if vals[0] <= 0.0 {
                         return Err(("Math Error: Natural logarithm of zero or negative number".to_string(), pos));
                     }
-                    Ok(val.ln())
+                    Ok(vals[0].ln())
                 }
-                "log" => {
-                    if val <= 0.0 {
+                "log" if vals.len() == 1 => {
+                    if vals[0] <= 0.0 {
                         return Err(("Math Error: Logarithm of zero or negative number".to_string(), pos));
                     }
-                    Ok(val.log10())
+                    Ok(vals[0].log10())
                 }
-                _ => Err((format!("Math Error: Unknown function '{}'", name), pos)),
+                "max" if !vals.is_empty() => Ok(vals.iter().cloned().fold(f64::NEG_INFINITY, f64::max)),
+                "min" if !vals.is_empty() => Ok(vals.iter().cloned().fold(f64::INFINITY, f64::min)),
+                "sum" => Ok(vals.iter().sum()),
+                "avg" if !vals.is_empty() => Ok(vals.iter().sum::<f64>() / vals.len() as f64),
+                // Programmer features (Bit-functions)
+                "and" if vals.len() == 2 => Ok((vals[0] as u64 & vals[1] as u64) as f64),
+                "or" if vals.len() == 2 => Ok((vals[0] as u64 | vals[1] as u64) as f64),
+                "xor" if vals.len() == 2 => Ok((vals[0] as u64 ^ vals[1] as u64) as f64),
+                "not" if vals.len() == 1 => Ok((!(vals[0] as u64)) as f64),
+                "lshift" if vals.len() == 2 => Ok(((vals[0] as u64) << vals[1] as u64) as f64),
+                "rshift" if vals.len() == 2 => Ok(((vals[0] as u64) >> vals[1] as u64) as f64),
+                _ => {
+                    if ["sin", "cos", "tan", "asin", "acos", "atan", "sqrt", "abs", "hex", "bin", "ln", "log", "not"].contains(&name.as_str()) && vals.len() != 1 {
+                        Err((format!("Math Error: Function '{}' expects 1 argument", name), pos))
+                    } else if ["and", "or", "xor", "lshift", "rshift"].contains(&name.as_str()) && vals.len() != 2 {
+                        Err((format!("Math Error: Function '{}' expects 2 arguments", name), pos))
+                    } else if ["max", "min", "avg"].contains(&name.as_str()) && vals.is_empty() {
+                        Err((format!("Math Error: Function '{}' expects at least 1 argument", name), pos))
+                    } else {
+                        Err((format!("Math Error: Unknown function '{}' or wrong number of arguments", name), pos))
+                    }
+                }
             }
         }
         Expr::Add(l, r) => {
@@ -462,6 +547,8 @@ fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
             println!("  = (assignment, e.g., x = 10)");
             println!("\nAvailable Functions:");
             println!("  sin, cos, tan, asin, acos, atan, sqrt, abs, hex, bin, ln, log");
+            println!("  max(...), min(...), sum(...), avg(...)");
+            println!("  and(a,b), or(a,b), xor(a,b), not(a), lshift(a,n), rshift(a,n)");
             println!("\nAvailable Constants:");
             println!("  pi, e, deg (use as '90 deg' or '90 * deg')");
             println!("\nSpecial Variables:");
