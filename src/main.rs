@@ -1,4 +1,5 @@
 mod ast;
+mod error;
 mod evaluator;
 mod lexer;
 mod parser;
@@ -8,7 +9,7 @@ use std::io::{self, Write};
 
 use ast::Expr;
 use evaluator::evaluate;
-use lexer::{tokenize, TokenKind};
+use lexer::{TokenKind, tokenize};
 use parser::Parser;
 
 const RED: &str = "\x1b[31m";
@@ -33,10 +34,19 @@ fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
             println!("  = (assignment), ; (separator), , (arguments)");
 
             println!("\n{}Available Functions:{}", BOLD, RESET);
-            println!("  {}Trigonometric:{} sin, cos, tan, asin, acos, atan", BOLD, RESET);
-            println!("  {}Math:{}          sqrt, abs, ln, log, round(val, places)", BOLD, RESET);
+            println!(
+                "  {}Trigonometric:{} sin, cos, tan, asin, acos, atan",
+                BOLD, RESET
+            );
+            println!(
+                "  {}Math:{}          sqrt, abs, ln, log, round(val, places)",
+                BOLD, RESET
+            );
             println!("  {}Aggregates:{}    sum, avg, min, max", BOLD, RESET);
-            println!("  {}Bitwise:{}       and, or, xor, not, lshift, rshift", BOLD, RESET);
+            println!(
+                "  {}Bitwise:{}       and, or, xor, not, lshift, rshift",
+                BOLD, RESET
+            );
             println!("  {}Formatting:{}    hex, bin", BOLD, RESET);
 
             println!("\n{}Constants & Special:{}", BOLD, RESET);
