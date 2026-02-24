@@ -273,15 +273,10 @@ fn evaluate(expr: &Expr, vars: &mut HashMap<String, f64>) -> Result<f64, String>
     match expr {
         Expr::Number(n) => Ok(*n),
         Expr::Variable(name) => {
-            if name == "pi" {
-                return Ok(std::f64::consts::PI);
-            }
-            if name == "e" {
-                return Ok(std::f64::consts::E);
-            }
-            vars.get(name)
-                .copied()
-                .ok_or_else(|| format!("Math Error: Unknown variable '{}'", name))
+            if name == "pi" { return Ok(std::f64::consts::PI); }
+            if name == "e" { return Ok(std::f64::consts::E); }
+            if name == "deg" { return Ok(std::f64::consts::PI / 180.0); }
+            vars.get(name).copied().ok_or_else(|| format!("Math Error: Unknown variable '{}'", name))
         }
         Expr::Assign(name, val_expr) => {
             let val = evaluate(val_expr, vars)?;
