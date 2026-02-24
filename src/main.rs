@@ -1,6 +1,12 @@
 use std::collections::HashMap;
 use std::io::{self, Write};
 
+// ANSI color codes
+const RED: &str = "\x1b[31m";
+const GREEN: &str = "\x1b[32m";
+const RESET: &str = "\x1b[0m";
+const BOLD: &str = "\x1b[1m";
+
 #[derive(Debug, Clone, PartialEq)]
 enum TokenKind {
     Number(f64),
@@ -451,13 +457,12 @@ fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (String
                 "min" if !vals.is_empty() => Ok(vals.iter().cloned().fold(f64::INFINITY, f64::min)),
                 "sum" => Ok(vals.iter().sum()),
                 "avg" if !vals.is_empty() => Ok(vals.iter().sum::<f64>() / vals.len() as f64),
-                // Programmer features (Bit-functions)
-                "and" if vals.len() == 2 => Ok((vals[0] as u64 & vals[1] as u64) as f64),
-                "or" if vals.len() == 2 => Ok((vals[0] as u64 | vals[1] as u64) as f64),
-                "xor" if vals.len() == 2 => Ok((vals[0] as u64 ^ vals[1] as u64) as f64),
+                "and" if vals.len() == 2 => Ok(((vals[0] as u64) & (vals[1] as u64)) as f64),
+                "or" if vals.len() == 2 => Ok(((vals[0] as u64) | (vals[1] as u64)) as f64),
+                "xor" if vals.len() == 2 => Ok(((vals[0] as u64) ^ (vals[1] as u64)) as f64),
                 "not" if vals.len() == 1 => Ok((!(vals[0] as u64)) as f64),
-                "lshift" if vals.len() == 2 => Ok(((vals[0] as u64) << vals[1] as u64) as f64),
-                "rshift" if vals.len() == 2 => Ok(((vals[0] as u64) >> vals[1] as u64) as f64),
+                "lshift" if vals.len() == 2 => Ok(((vals[0] as u64) << (vals[1] as u64)) as f64),
+                "rshift" if vals.len() == 2 => Ok(((vals[0] as u64) >> (vals[1] as u64)) as f64),
                 _ => {
                     if ["sin", "cos", "tan", "asin", "acos", "atan", "sqrt", "abs", "hex", "bin", "ln", "log", "not"].contains(&name.as_str()) && vals.len() != 1 {
                         Err((format!("Math Error: Function '{}' expects 1 argument", name), pos))
@@ -526,7 +531,7 @@ fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (String
 
 fn print_error(input: &str, msg: &str, pos: usize) {
     println!("{}", input);
-    println!("{}^-- {}", " ".repeat(pos), msg);
+    println!("{}{}^-- {}{}", RED, " ".repeat(pos), msg, RESET);
     println!();
 }
 
@@ -540,7 +545,7 @@ fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
         }
 
         if trimmed.eq_ignore_ascii_case("help") {
-            println!("rcal v{}", env!("CARGO_PKG_VERSION"));
+            println!("{}rcal v{}{}", BOLD, env!("CARGO_PKG_VERSION"), RESET);
             println!("Available Operations:");
             println!("  +, -, *, /, %, ^ (power), ! (factorial)");
             println!("  ; (separate multiple expressions)");
@@ -583,13 +588,13 @@ fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
                         if !matches!(ast.expr, Expr::Assign(_, _)) {
                             match &ast.expr {
                                 Expr::Function(name, _) if name == "hex" => {
-                                    println!("= 0x{:x}\n", normalized as u64);
+                                    println!("{}= 0x{:x}{}\n", GREEN, normalized as u64, RESET);
                                 }
                                 Expr::Function(name, _) if name == "bin" => {
-                                    println!("= 0b{:b}\n", normalized as u64);
+                                    println!("{}= 0b{:b}{}\n", GREEN, normalized as u64, RESET);
                                 }
                                 _ => {
-                                    println!("= {}\n", normalized);
+                                    println!("{}= {}{}\n", GREEN, normalized, RESET);
                                 }
                             }
                         }
@@ -616,7 +621,7 @@ fn main() {
         return;
     }
 
-    println!("rcal v{}", env!("CARGO_PKG_VERSION"));
+    println!("{}rcal v{}{}", BOLD, env!("CARGO_PKG_VERSION"), RESET);
     println!("please provide a mathematical input or type 'exit'\n");
 
     loop {
