@@ -13,14 +13,9 @@ use evaluator::evaluate;
 use lexer::{TokenKind, tokenize};
 use parser::Parser;
 
-const RED: &str = "\x1b[31m";
 const GREEN: &str = "\x1b[32m";
 const RESET: &str = "\x1b[0m";
 const BOLD: &str = "\x1b[1m";
-
-fn report_err(input: &str, msg: &str, pos: usize) {
-    println!("{}\n{}{}^-- {}{}", input, RED, " ".repeat(pos), msg, RESET);
-}
 
 fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
     for part in input.split(';') {
@@ -95,7 +90,7 @@ fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
                     }
                 }
             }
-            Err(e) => report_err(t, &e.to_string(), e.pos()),
+            Err(e) => e.report(t),
         }
     }
 }

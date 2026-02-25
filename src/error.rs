@@ -12,6 +12,19 @@ impl RcalError {
             RcalError::Lexer(_, p) | RcalError::Parser(_, p) | RcalError::Math(_, p) => *p,
         }
     }
+
+    pub fn report(&self, input: &str) {
+        let red = "\x1b[31m";
+        let reset = "\x1b[0m";
+        println!(
+            "{}\n{}{}^-- {}{}",
+            input,
+            red,
+            " ".repeat(self.pos()),
+            self,
+            reset
+        );
+    }
 }
 
 impl fmt::Display for RcalError {
