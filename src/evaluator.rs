@@ -1,11 +1,14 @@
-use crate::ast::{BinOp, Expr, Node, UnOp};
+use crate::{
+    ast::{BinOp, Expr, Node, UnOp},
+    error::RcalError,
+};
 use std::collections::HashMap;
 
-pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (String, usize)> {
+pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, RcalError> {
     let pos = node.pos;
     let check = |res: f64| {
         if res.is_infinite() {
-            Err(("Math Error: Overflow".to_string(), pos))
+            Err(RcalError::Math("Overflow".to_string(), pos))
         } else {
             Ok(res)
         }
@@ -19,7 +22,7 @@ pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (St
             _ => vars
                 .get(name)
                 .copied()
-                .ok_or_else(|| (format!("Math Error: Unknown variable '{}'", name), pos)),
+                .ok_or_else(|| RcalError::Math(format!("Unknown variable '{}'", name), pos)),
         },
         Expr::Assign(name, e) => {
             let v = evaluate(e, vars)?;
@@ -47,14 +50,14 @@ pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (St
                         "abs" => Ok(v.abs()),
                         "sqrt" => {
                             if v < 0.0 {
-                                Err(("Math Error: Sqrt of negative".to_string(), pos))
+                                Err(RcalError::Math("Sqrt of negative".to_string(), pos))
                             } else {
                                 Ok(v.sqrt())
                             }
                         }
                         "ln" | "log" => {
                             if v <= 0.0 {
-                                Err(("Math Error: Log of non-positive".to_string(), pos))
+                                Err(RcalError::Math("Log of non-positive".to_string(), pos))
                             } else {
                                 if name == "ln" {
                                     Ok(v.ln())
@@ -66,7 +69,7 @@ pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (St
                         "not" => Ok(!(v as u64) as f64),
                         "hex" | "bin" => {
                             if v < 0.0 || v > u64::MAX as f64 || v.fract() != 0.0 {
-                                Err(("Math Error: Invalid for hex/bin".to_string(), pos))
+                                Err(RcalError::Math("Invalid for hex/bin".to_string(), pos))
                             } else {
                                 Ok(v)
                             }
@@ -96,8 +99,8 @@ pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (St
                     "avg" => Ok(vs.iter().sum::<f64>() / vs.len() as f64),
                     _ => unreachable!(),
                 },
-                _ => Err((
-                    format!("Math Error: Unknown function or wrong args for '{}'", name),
+                _ => Err(RcalError::Math(
+                    format!("Unknown function or wrong args for '{}'", name),
                     pos,
                 )),
             }
@@ -110,14 +113,14 @@ pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (St
                 BinOp::Mul => check(lv * rv),
                 BinOp::Div => {
                     if rv == 0.0 {
-                        Err(("Math Error: Division by zero".to_string(), pos))
+                        Err(RcalError::Math("Division by zero".to_string(), pos))
                     } else {
                         check(lv / rv)
                     }
                 }
                 BinOp::Mod => {
                     if rv == 0.0 {
-                        Err(("Math Error: Modulo by zero".to_string(), pos))
+                        Err(RcalError::Math("Modulo by zero".to_string(), pos))
                     } else {
                         Ok(lv % rv)
                     }
@@ -127,7 +130,7 @@ pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (St
                     if res.is_infinite() {
                         check(res)
                     } else if res.is_nan() {
-                        Err(("Math Error: Invalid power".to_string(), pos))
+                        Err(RcalError::Math("Invalid power".to_string(), pos))
                     } else {
                         Ok(res)
                     }
@@ -137,10 +140,10 @@ pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, (St
         Expr::Factorial(e) => {
             let v = evaluate(e, vars)?;
             if v < 0.0 || v.fract() != 0.0 {
-                return Err(("Math Error: Needs non-neg int".to_string(), pos));
+                return Err(RcalError::Math("Needs non-neg int".to_string(), pos));
             }
             if v > 170.0 {
-                return Err(("Math Error: Factorial overflow".to_string(), pos));
+                return Err(RcalError::Math("Factorial overflow".to_string(), pos));
             }
             let mut r = 1.0;
             for i in 1..=(v as u64) {

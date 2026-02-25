@@ -8,6 +8,7 @@ use std::collections::HashMap;
 use std::io::{self, Write};
 
 use ast::Expr;
+use error::RcalError;
 use evaluator::evaluate;
 use lexer::{TokenKind, tokenize};
 use parser::Parser;
@@ -63,14 +64,20 @@ fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
             }
             continue;
         }
-        match tokenize(t).and_then(|toks| {
+        let result = tokenize(t).and_then(|toks| {
             let mut p = Parser::new(toks);
             let ast = p.parse_expr()?;
             if p.cur().kind != TokenKind::EOF {
-                return Err(("SyntaxError: Unexpected character".to_string(), p.cur().pos));
+                return Err(RcalError::Parser(
+                    "Unexpected character".to_string(),
+                    p.cur().pos,
+                ));
             }
-            evaluate(&ast, vars).map(|v| (v, ast))
-        }) {
+            let v = evaluate(&ast, vars)?;
+            Ok((v, ast))
+        });
+
+        match result {
             Ok((v, ast)) => {
                 vars.insert("ans".to_string(), v);
                 if !matches!(ast.expr, Expr::Assign(_, _)) {
@@ -88,7 +95,7 @@ fn process_input(input: &str, vars: &mut HashMap<String, f64>) {
                     }
                 }
             }
-            Err((e, p)) => report_err(t, &e, p),
+            Err(e) => report_err(t, &e.to_string(), e.pos()),
         }
     }
 }

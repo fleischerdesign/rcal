@@ -1,4 +1,5 @@
 use crate::ast::{BinOp, Expr, Node, UnOp};
+use crate::error::RcalError;
 use crate::lexer::{Token, TokenKind};
 
 pub struct Parser {
@@ -27,7 +28,7 @@ impl Parser {
         self.pos += 1;
     }
 
-    pub fn parse_expr(&mut self) -> Result<Box<Node>, (String, usize)> {
+    pub fn parse_expr(&mut self) -> Result<Box<Node>, RcalError> {
         if let TokenKind::Identifier(name) = &self.cur().kind {
             if self.peek().kind == TokenKind::Assign {
                 let (name, pos) = (name.clone(), self.cur().pos);
@@ -42,13 +43,9 @@ impl Parser {
         self.parse_binary(Self::parse_term, &[TokenKind::Plus, TokenKind::Minus])
     }
 
-    fn parse_binary<F>(
-        &mut self,
-        mut next: F,
-        kinds: &[TokenKind],
-    ) -> Result<Box<Node>, (String, usize)>
+    fn parse_binary<F>(&mut self, mut next: F, kinds: &[TokenKind]) -> Result<Box<Node>, RcalError>
     where
-        F: FnMut(&mut Self) -> Result<Box<Node>, (String, usize)>,
+        F: FnMut(&mut Self) -> Result<Box<Node>, RcalError>,
     {
         let mut left = next(self)?;
         while kinds.contains(&self.cur().kind) {
@@ -72,7 +69,7 @@ impl Parser {
         Ok(left)
     }
 
-    fn parse_term(&mut self) -> Result<Box<Node>, (String, usize)> {
+    fn parse_term(&mut self) -> Result<Box<Node>, RcalError> {
         let mut left = self.parse_power()?;
         loop {
             let (kind, pos) = (self.cur().kind.clone(), self.cur().pos);
@@ -103,7 +100,7 @@ impl Parser {
         Ok(left)
     }
 
-    fn parse_power(&mut self) -> Result<Box<Node>, (String, usize)> {
+    fn parse_power(&mut self) -> Result<Box<Node>, RcalError> {
         let left = self.parse_postfix()?;
         if self.cur().kind == TokenKind::Power {
             let pos = self.cur().pos;
@@ -117,7 +114,7 @@ impl Parser {
         }
     }
 
-    fn parse_postfix(&mut self) -> Result<Box<Node>, (String, usize)> {
+    fn parse_postfix(&mut self) -> Result<Box<Node>, RcalError> {
         let mut left = self.parse_unary()?;
         while self.cur().kind == TokenKind::Factorial {
             let pos = self.cur().pos;
@@ -130,7 +127,7 @@ impl Parser {
         Ok(left)
     }
 
-    fn parse_unary(&mut self) -> Result<Box<Node>, (String, usize)> {
+    fn parse_unary(&mut self) -> Result<Box<Node>, RcalError> {
         let pos = self.cur().pos;
         match self.cur().kind {
             TokenKind::Minus | TokenKind::Plus => {
@@ -150,7 +147,7 @@ impl Parser {
         }
     }
 
-    fn parse_factor(&mut self) -> Result<Box<Node>, (String, usize)> {
+    fn parse_factor(&mut self) -> Result<Box<Node>, RcalError> {
         let pos = self.cur().pos;
         match self.cur().kind.clone() {
             TokenKind::Number(n) => {
@@ -183,8 +180,8 @@ impl Parser {
                             pos,
                         }))
                     } else {
-                        Err((
-                            "SyntaxError: Lacking closing parenthesis".to_string(),
+                        Err(RcalError::Parser(
+                            "Lacking closing parenthesis".to_string(),
                             self.cur().pos,
                         ))
                     }
@@ -202,15 +199,18 @@ impl Parser {
                     self.consume();
                     Ok(e)
                 } else {
-                    Err((
-                        "SyntaxError: Lacking closing parenthesis".to_string(),
+                    Err(RcalError::Parser(
+                        "Lacking closing parenthesis".to_string(),
                         self.cur().pos,
                     ))
                 }
             }
-            TokenKind::EOF => Err(("Unexpected end of input".to_string(), pos)),
-            _ => Err((
-                format!("SyntaxError: Unexpected token {:?}", self.cur().kind),
+            TokenKind::EOF => Err(RcalError::Parser(
+                "Unexpected end of input".to_string(),
+                pos,
+            )),
+            _ => Err(RcalError::Parser(
+                format!("Unexpected token {:?}", self.cur().kind),
                 pos,
             )),
         }

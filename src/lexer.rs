@@ -1,3 +1,5 @@
+use crate::error::RcalError;
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     Number(f64),
@@ -23,7 +25,7 @@ pub struct Token {
     pub pos: usize,
 }
 
-pub fn tokenize(input: &str) -> Result<Vec<Token>, (String, usize)> {
+pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
     let mut tokens = Vec::new();
     let mut chars = input.char_indices().peekable();
     while let Some(&(i, c)) = chars.peek() {
@@ -90,7 +92,10 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, (String, usize)> {
                                 });
                                 continue;
                             }
-                            return Err((format!("LexerError: Invalid radix-{} format", r), start));
+                            return Err(RcalError::Lexer(
+                                format!("Invalid radix-{} format", r),
+                                start,
+                            ));
                         }
                         s.push('0');
                     } else {
@@ -114,11 +119,11 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, (String, usize)> {
                         break;
                     }
                 }
-                let n = s
-                    .parse::<f64>()
-                    .map_err(|_| (format!("LexerError: Invalid number '{}'", s), start))?;
+                let n = s.parse::<f64>().map_err(|_| {
+                    RcalError::Lexer(format!("LexerError: Invalid number '{}'", s), start)
+                })?;
                 if n.is_infinite() {
-                    return Err((format!("LexerError: Overflow in '{}'", s), start));
+                    return Err(RcalError::Lexer(format!("Overflow in '{}'", s), start));
                 }
                 tokens.push(Token {
                     kind: TokenKind::Number(n),
@@ -126,7 +131,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, (String, usize)> {
                 });
                 continue;
             }
-            _ => return Err((format!("LexerError: Unexpected character '{}'", c), i)),
+            _ => return Err(RcalError::Lexer(format!("Unexpected character '{}'", c), i)),
         };
         tokens.push(Token { kind, pos: i });
         chars.next();
