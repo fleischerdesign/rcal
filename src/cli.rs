@@ -229,10 +229,16 @@ impl Cli {
             return;
         }
 
-        for (k, v) in vars {
-            println!("{}: {}", k, v);
+        let mut v_keys: Vec<_> = vars.keys().collect();
+        v_keys.sort();
+        for k in v_keys {
+            println!("{}: {}", k, vars.get(k).unwrap());
         }
-        for (k, f) in funcs {
+
+        let mut f_keys: Vec<_> = funcs.keys().collect();
+        f_keys.sort();
+        for k in f_keys {
+            let f = funcs.get(k).unwrap();
             println!("{}({}) = {}", k, f.params.join(", "), f.body);
         }
     }

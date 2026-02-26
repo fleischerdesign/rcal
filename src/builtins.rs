@@ -1,4 +1,7 @@
-use crate::unit::{Quantity, UNITS};
+use crate::unit::{
+    ACCELERATION, ACTION, ANGLE, AVOGADRO_CONSTANT, BOLTZMANN_CONSTANT, GRAVITATIONAL_CONSTANT,
+    Quantity, UNITS, VELOCITY,
+};
 
 pub enum Arity {
     Fixed(usize),
@@ -24,7 +27,7 @@ fn inv_trig(args: &[Quantity], f: fn(f64) -> f64) -> Result<Quantity, String> {
     }
     Ok(Quantity {
         value: f(args[0].value),
-        dims: [0, 0, 0, 0, 0, 0, 0, 1],
+        dims: ANGLE,
     })
 }
 
@@ -302,42 +305,42 @@ pub const CONSTANTS: &[(&str, Quantity)] = &[
         "c",
         Quantity {
             value: 299_792_458.0,
-            dims: [1, 0, -1, 0, 0, 0, 0, 0],
+            dims: VELOCITY,
         },
     ),
     (
         "G",
         Quantity {
             value: 6.674_30e-11,
-            dims: [3, -1, -2, 0, 0, 0, 0, 0],
+            dims: GRAVITATIONAL_CONSTANT,
         },
     ),
     (
         "planck",
         Quantity {
             value: 6.626_070_15e-34,
-            dims: [2, 1, -1, 0, 0, 0, 0, 0],
+            dims: ACTION,
         },
     ),
     (
         "k_b",
         Quantity {
             value: 1.380_649e-23,
-            dims: [2, 1, -2, 0, -1, 0, 0, 0],
+            dims: BOLTZMANN_CONSTANT,
         },
     ),
     (
         "Na",
         Quantity {
             value: 6.022_140_76e23,
-            dims: [0, 0, 0, 0, 0, -1, 0, 0],
+            dims: AVOGADRO_CONSTANT,
         },
     ),
     (
         "g0",
         Quantity {
             value: 9.806_65,
-            dims: [1, 0, -2, 0, 0, 0, 0, 0],
+            dims: ACCELERATION,
         },
     ),
 ];
@@ -351,6 +354,7 @@ pub fn is_protected(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::unit::{AREA, LENGTH, MASS};
 
     #[test]
     fn test_trig_scalar() {
@@ -372,11 +376,11 @@ mod tests {
         let sqrt_f = BUILTINS.iter().find(|b| b.name == "sqrt").unwrap();
         let m2 = Quantity {
             value: 16.0,
-            dims: [2, 0, 0, 0, 0, 0, 0, 0],
+            dims: AREA,
         };
         let res = (sqrt_f.func)(&[m2]).unwrap();
         assert_eq!(res.value, 4.0);
-        assert_eq!(res.dims, [1, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(res.dims, LENGTH);
     }
 
     #[test]
@@ -384,11 +388,11 @@ mod tests {
         let sum_f = BUILTINS.iter().find(|b| b.name == "sum").unwrap();
         let m = Quantity {
             value: 1.0,
-            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+            dims: LENGTH,
         };
         let kg = Quantity {
             value: 1.0,
-            dims: [0, 1, 0, 0, 0, 0, 0, 0],
+            dims: MASS,
         };
 
         assert!((sum_f.func)(&[m, m]).is_ok());
