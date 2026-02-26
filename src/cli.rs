@@ -1,4 +1,5 @@
-use std::io::{self, Write};
+use rustyline::error::ReadlineError;
+use rustyline::DefaultEditor;
 use crate::calculator::Calculator;
 use crate::ast::Expr;
 
@@ -17,6 +18,14 @@ impl Cli {
         }
     }
 
+    fn history_path() -> Option<std::path::PathBuf> {
+        #[allow(deprecated)]
+        std::env::home_dir().map(|mut p| {
+            p.push(".rcal_history");
+            p
+        })
+    }
+
     pub fn run(&mut self) {
         let args: Vec<_> = std::env::args().collect();
         
@@ -26,29 +35,58 @@ impl Cli {
         }
 
         println!(
-            "{}rcal v{}{}
-Type 'help' for info or 'exit' to quit
-",
+            "{}rcal v{}{}\nType 'help' for info or 'exit' to quit\n",
             BOLD,
             env!("CARGO_PKG_VERSION"),
             RESET
         );
 
+        let mut rl = match DefaultEditor::new() {
+            Ok(ed) => ed,
+            Err(e) => {
+                crate::error::RcalError::Cli(format!("Failed to initialize editor: {}", e)).report("");
+                return;
+            }
+        };
+
+        let h_path = Self::history_path();
+        if let Some(ref path) = h_path {
+            if let Err(e) = rl.load_history(path) {
+                // Only report if it's not a "file not found" error
+                if !matches!(e, ReadlineError::Io(ref io_err) if io_err.kind() == std::io::ErrorKind::NotFound) {
+                    crate::error::RcalError::Cli(format!("Failed to load history: {}", e)).report("");
+                }
+            }
+        }
+
         loop {
-            print!("> ");
-            io::stdout().flush().unwrap();
-            
-            let mut input = String::new();
-            if io::stdin().read_line(&mut input).unwrap() == 0 {
-                break;
+            let readline = rl.readline("> ");
+            match readline {
+                Ok(line) => {
+                    let trimmed = line.trim();
+                    if trimmed.is_empty() {
+                        continue;
+                    }
+
+                    if trimmed.eq_ignore_ascii_case("exit") || trimmed.eq_ignore_ascii_case("quit") {
+                        break;
+                    }
+
+                    let _ = rl.add_history_entry(trimmed);
+                    self.execute(trimmed);
+                }
+                Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
+                    break;
+                }
+                Err(err) => {
+                    crate::error::RcalError::Cli(format!("Readline error: {}", err)).report("");
+                    break;
+                }
             }
-            
-            let trimmed = input.trim();
-            if trimmed.eq_ignore_ascii_case("exit") || trimmed.eq_ignore_ascii_case("quit") {
-                break;
-            }
-            
-            self.execute(trimmed);
+        }
+
+        if let Some(ref path) = h_path {
+            let _ = rl.save_history(path);
         }
     }
 
@@ -93,27 +131,22 @@ Type 'help' for info or 'exit' to quit
 
     fn print_help(&self) {
         println!("{}rcal v{}{}", BOLD, env!("CARGO_PKG_VERSION"), RESET);
-        println!("
-{}Available Operations:{}", BOLD, RESET);
+        println!("\n{}Available Operations:{}", BOLD, RESET);
         println!("  +, -, *, /, %, ^, ! (factorial)");
         println!("  = (assignment), ; (separator), , (arguments)");
 
-        println!("
-{}Available Functions:{}", BOLD, RESET);
+        println!("\n{}Available Functions:{}", BOLD, RESET);
         println!("  {}Trigonometric:{} sin, cos, tan, asin, acos, atan", BOLD, RESET);
         println!("  {}Math:{}          sqrt, abs, ln, log, round(val, places)", BOLD, RESET);
         println!("  {}Aggregates:{}    sum, avg, min, max", BOLD, RESET);
         println!("  {}Bitwise:{}       and, or, xor, not, lshift, rshift", BOLD, RESET);
         println!("  {}Formatting:{}    hex, bin", BOLD, RESET);
 
-        println!("
-{}Constants & Special:{}", BOLD, RESET);
+        println!("\n{}Constants & Special:{}", BOLD, RESET);
         println!("  pi, e, deg, ans");
 
-        println!("
-{}Commands:{}", BOLD, RESET);
-        println!("  help, vars, exit, quit
-");
+        println!("\n{}Commands:{}", BOLD, RESET);
+        println!("  help, vars, exit, quit\n");
     }
 
     fn print_vars(&self) {

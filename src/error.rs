@@ -4,26 +4,33 @@ pub enum RcalError {
     Lexer(String, usize),
     Parser(String, usize),
     Math(String, usize),
+    Cli(String),
 }
 
 impl RcalError {
-    pub fn pos(&self) -> usize {
+    pub fn pos(&self) -> Option<usize> {
         match self {
-            RcalError::Lexer(_, p) | RcalError::Parser(_, p) | RcalError::Math(_, p) => *p,
+            RcalError::Lexer(_, p) | RcalError::Parser(_, p) | RcalError::Math(_, p) => Some(*p),
+            RcalError::Cli(_) => None,
         }
     }
 
     pub fn report(&self, input: &str) {
         let red = "\x1b[31m";
         let reset = "\x1b[0m";
-        println!(
-            "{}\n{}{}^-- {}{}",
-            input,
-            red,
-            " ".repeat(self.pos()),
-            self,
-            reset
-        );
+        
+        if let Some(pos) = self.pos() {
+            println!(
+                "{}\n{}{}^-- {}{}",
+                input,
+                red,
+                " ".repeat(pos),
+                self,
+                reset
+            );
+        } else {
+            println!("{}Error: {}{}", red, self, reset);
+        }
     }
 }
 
@@ -33,6 +40,7 @@ impl fmt::Display for RcalError {
             RcalError::Lexer(msg, _) => write!(f, "Lexer Error: {}", msg),
             RcalError::Parser(msg, _) => write!(f, "Parser Error: {}", msg),
             RcalError::Math(msg, _) => write!(f, "Math Error: {}", msg),
+            RcalError::Cli(msg) => write!(f, "CLI Error: {}", msg),
         }
     }
 }

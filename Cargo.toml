@@ -1,6 +1,7 @@
 [package]
 name = "rcal"
-version = "0.7.1"
+version = "0.7.2"
 edition = "2024"
 
 [dependencies]
+rustyline = "17.0.2"
