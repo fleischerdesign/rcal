@@ -1,9 +1,9 @@
-use std::collections::HashMap;
-use crate::lexer::{tokenize, TokenKind};
-use crate::parser::Parser;
-use crate::evaluator::evaluate;
 use crate::ast::Expr;
 use crate::error::RcalError;
+use crate::evaluator::evaluate;
+use crate::lexer::{TokenKind, tokenize};
+use crate::parser::Parser;
+use std::collections::HashMap;
 
 pub struct Calculator {
     vars: HashMap<String, f64>,
@@ -20,14 +20,14 @@ impl Calculator {
         let toks = tokenize(input)?;
         let mut p = Parser::new(toks);
         let ast = p.parse_expr()?;
-        
+
         if p.cur().kind != TokenKind::EOF {
             return Err(RcalError::Parser(
                 "Unexpected character".to_string(),
                 p.cur().pos,
             ));
         }
-        
+
         let v = evaluate(&ast, &mut self.vars)?;
         self.vars.insert("ans".to_string(), v);
         Ok((v, ast.expr))

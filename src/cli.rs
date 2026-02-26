@@ -1,7 +1,7 @@
-use rustyline::error::ReadlineError;
-use rustyline::DefaultEditor;
-use crate::calculator::Calculator;
 use crate::ast::Expr;
+use crate::calculator::Calculator;
+use rustyline::DefaultEditor;
+use rustyline::error::ReadlineError;
 
 const RESET: &str = "\x1b[0m";
 const BOLD: &str = "\x1b[1m";
@@ -28,7 +28,7 @@ impl Cli {
 
     pub fn run(&mut self) {
         let args: Vec<_> = std::env::args().collect();
-        
+
         if args.len() > 1 {
             self.execute(&args[1..].join(" "));
             return;
@@ -44,7 +44,8 @@ impl Cli {
         let mut rl = match DefaultEditor::new() {
             Ok(ed) => ed,
             Err(e) => {
-                crate::error::RcalError::Cli(format!("Failed to initialize editor: {}", e)).report("");
+                crate::error::RcalError::Cli(format!("Failed to initialize editor: {}", e))
+                    .report("");
                 return;
             }
         };
@@ -53,8 +54,10 @@ impl Cli {
         if let Some(ref path) = h_path {
             if let Err(e) = rl.load_history(path) {
                 // Only report if it's not a "file not found" error
-                if !matches!(e, ReadlineError::Io(ref io_err) if io_err.kind() == std::io::ErrorKind::NotFound) {
-                    crate::error::RcalError::Cli(format!("Failed to load history: {}", e)).report("");
+                if !matches!(e, ReadlineError::Io(ref io_err) if io_err.kind() == std::io::ErrorKind::NotFound)
+                {
+                    crate::error::RcalError::Cli(format!("Failed to load history: {}", e))
+                        .report("");
                 }
             }
         }
@@ -68,7 +71,8 @@ impl Cli {
                         continue;
                     }
 
-                    if trimmed.eq_ignore_ascii_case("exit") || trimmed.eq_ignore_ascii_case("quit") {
+                    if trimmed.eq_ignore_ascii_case("exit") || trimmed.eq_ignore_ascii_case("quit")
+                    {
                         break;
                     }
 
@@ -136,10 +140,19 @@ impl Cli {
         println!("  = (assignment), ; (separator), , (arguments)");
 
         println!("\n{}Available Functions:{}", BOLD, RESET);
-        println!("  {}Trigonometric:{} sin, cos, tan, asin, acos, atan", BOLD, RESET);
-        println!("  {}Math:{}          sqrt, abs, ln, log, round(val, places)", BOLD, RESET);
+        println!(
+            "  {}Trigonometric:{} sin, cos, tan, asin, acos, atan",
+            BOLD, RESET
+        );
+        println!(
+            "  {}Math:{}          sqrt, abs, ln, log, round(val, places)",
+            BOLD, RESET
+        );
         println!("  {}Aggregates:{}    sum, avg, min, max", BOLD, RESET);
-        println!("  {}Bitwise:{}       and, or, xor, not, lshift, rshift", BOLD, RESET);
+        println!(
+            "  {}Bitwise:{}       and, or, xor, not, lshift, rshift",
+            BOLD, RESET
+        );
         println!("  {}Formatting:{}    hex, bin", BOLD, RESET);
 
         println!("\n{}Constants & Special:{}", BOLD, RESET);

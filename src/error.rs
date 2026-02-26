@@ -18,16 +18,9 @@ impl RcalError {
     pub fn report(&self, input: &str) {
         let red = "\x1b[31m";
         let reset = "\x1b[0m";
-        
+
         if let Some(pos) = self.pos() {
-            println!(
-                "{}\n{}{}^-- {}{}",
-                input,
-                red,
-                " ".repeat(pos),
-                self,
-                reset
-            );
+            println!("{}\n{}{}^-- {}{}", input, red, " ".repeat(pos), self, reset);
         } else {
             println!("{}Error: {}{}", red, self, reset);
         }
