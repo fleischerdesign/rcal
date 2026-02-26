@@ -16,7 +16,7 @@ pub enum TokenKind {
     Comma,
     LParen,
     RParen,
-    EOF,
+    Eof,
 }
 
 impl TokenKind {
@@ -149,7 +149,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
                         s.push(ch);
                         chars.next();
                         if (ch == 'e' || ch == 'E')
-                            && chars.peek().map_or(false, |&(_, n)| n == '-' || n == '+')
+                            && chars.peek().is_some_and(|&(_, n)| n == '-' || n == '+')
                         {
                             s.push(chars.next().unwrap().1);
                         }
@@ -181,7 +181,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
         chars.next();
     }
     tokens.push(Token {
-        kind: TokenKind::EOF,
+        kind: TokenKind::Eof,
         pos: input.len(),
         len: 0,
     });
@@ -202,7 +202,7 @@ mod tests {
         assert!(matches!(tokens[2].kind, TokenKind::Number(n) if n == 2.0));
         assert!(matches!(tokens[3].kind, TokenKind::Multiply));
         assert!(matches!(tokens[4].kind, TokenKind::LParen));
-        assert!(matches!(tokens[9].kind, TokenKind::EOF));
+        assert!(matches!(tokens[9].kind, TokenKind::Eof));
     }
 
     #[test]

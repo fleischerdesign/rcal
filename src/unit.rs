@@ -27,8 +27,8 @@ impl Quantity {
             return Err("Cannot raise non-scalar to non-integer power".into());
         }
         let mut new_dims = [0i8; 8];
-        for i in 0..8 {
-            new_dims[i] = (self.dims[i] as f64 * exp) as i8;
+        for (i, dim) in new_dims.iter_mut().enumerate() {
+            *dim = (self.dims[i] as f64 * exp) as i8;
         }
         Ok(Self {
             value: self.value.powf(exp),
@@ -67,8 +67,8 @@ impl Mul for Quantity {
     type Output = Self;
     fn mul(self, rhs: Self) -> Self {
         let mut dims = [0i8; 8];
-        for i in 0..8 {
-            dims[i] = self.dims[i] + rhs.dims[i];
+        for (i, dim) in dims.iter_mut().enumerate() {
+            *dim = self.dims[i] + rhs.dims[i];
         }
         Self {
             value: self.value * rhs.value,
@@ -81,8 +81,8 @@ impl Div for Quantity {
     type Output = Self;
     fn div(self, rhs: Self) -> Self {
         let mut dims = [0i8; 8];
-        for i in 0..8 {
-            dims[i] = self.dims[i] - rhs.dims[i];
+        for (i, dim) in dims.iter_mut().enumerate() {
+            *dim = self.dims[i] - rhs.dims[i];
         }
         Self {
             value: self.value / rhs.value,
@@ -110,9 +110,9 @@ impl std::fmt::Display for Quantity {
         };
         write!(f, "{}", val_str)?;
         let units = ["m", "kg", "s", "A", "K", "mol", "cd", "rad"];
-        for i in 0..8 {
+        for (i, &unit) in units.iter().enumerate() {
             if self.dims[i] != 0 {
-                write!(f, " {}", units[i])?;
+                write!(f, " {}", unit)?;
                 if self.dims[i] != 1 {
                     write!(f, "^{}", self.dims[i])?;
                 }

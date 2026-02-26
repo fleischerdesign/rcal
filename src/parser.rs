@@ -53,10 +53,12 @@ impl Parser {
                         }
                         TokenKind::Comma => lookahead += 1,
                         TokenKind::RParen => {
-                            if let Some(next_tok) = self.tokens.get(lookahead + 1) {
-                                if next_tok.kind == TokenKind::Assign {
-                                    is_def = true;
-                                }
+                            if self
+                                .tokens
+                                .get(lookahead + 1)
+                                .is_some_and(|t| t.kind == TokenKind::Assign)
+                            {
+                                is_def = true;
                             }
                             break;
                         }
@@ -218,7 +220,7 @@ impl Parser {
                     let mut args = Vec::new();
                     if self.cur().kind != TokenKind::RParen {
                         loop {
-                            args.push(self.parse_expr()?);
+                            args.push(*self.parse_expr()?);
                             if self.cur().kind == TokenKind::Comma {
                                 self.consume();
                             } else {

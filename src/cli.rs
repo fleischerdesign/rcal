@@ -63,11 +63,12 @@ impl Cli {
 
         let h_path = Self::history_path();
         if let Some(ref path) = h_path {
-            if let Err(e) = rl.load_history(path) {
-                if !matches!(e, ReadlineError::Io(ref io_err) if io_err.kind() == std::io::ErrorKind::NotFound)
+            match rl.load_history(path) {
+                Err(e) if !matches!(e, ReadlineError::Io(ref io_err) if io_err.kind() == std::io::ErrorKind::NotFound) =>
                 {
                     crate::error::RcalError::Cli(format!("Failed to load history: {}", e)).report();
                 }
+                _ => {}
             }
         }
 

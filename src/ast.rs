@@ -18,7 +18,7 @@ pub enum Expr {
     Variable(String),
     Assign(String, Box<Node>),
     FnDefine(String, Vec<String>, Box<Node>),
-    Function(String, Vec<Box<Node>>),
+    Function(String, Vec<Node>),
     Binary(BinOp, Box<Node>, Box<Node>),
     Factorial(Box<Node>),
     Unary(UnOp, Box<Node>),
@@ -34,7 +34,7 @@ impl fmt::Display for Expr {
                 write!(f, "{}({}) = {}", name, params.join(", "), body)
             }
             Expr::Function(name, args) => {
-                let args_str: Vec<_> = args.iter().map(|a| a.to_string()).collect();
+                let args_str: Vec<_> = args.iter().map(|a| a.expr.to_string()).collect();
                 write!(f, "{}({})", name, args_str.join(", "))
             }
             Expr::Binary(op, l, r) => write!(f, "({} {} {})", l, op, r),

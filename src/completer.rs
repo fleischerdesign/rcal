@@ -80,7 +80,7 @@ impl Highlighter for RcalHelper {
                 out.push_str(&line[last_pos..token.pos]);
             }
 
-            if let TokenKind::EOF = token.kind {
+            if let TokenKind::Eof = token.kind {
                 break;
             }
 

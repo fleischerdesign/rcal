@@ -102,11 +102,11 @@ pub const BUILTINS: &[Builtin] = &[
                 return Err("Sqrt of negative".into());
             }
             let mut dims = [0i8; 8];
-            for i in 0..8 {
+            for (i, dim) in dims.iter_mut().enumerate() {
                 if args[0].dims[i] % 2 != 0 {
                     return Err("Cannot take sqrt of this unit".into());
                 }
-                dims[i] = args[0].dims[i] / 2;
+                *dim = args[0].dims[i] / 2;
             }
             Ok(Quantity {
                 value: args[0].value.sqrt(),

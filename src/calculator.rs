@@ -29,7 +29,7 @@ impl Calculator {
         let mut p = Parser::new(toks);
         let ast = p.parse_expr()?;
 
-        if p.cur().kind != TokenKind::EOF {
+        if p.cur().kind != TokenKind::Eof {
             return Err(RcalError::Parser(
                 "Unexpected character".to_string(),
                 p.cur().pos,
