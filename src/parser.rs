@@ -33,19 +33,11 @@ impl Parser {
         if self.cur().kind == TokenKind::In {
             let pos = self.cur().pos;
             self.consume();
-            if let TokenKind::Identifier(unit) = &self.cur().kind {
-                let unit = unit.clone();
-                self.consume();
-                return Ok(Box::new(Node {
-                    expr: Expr::Convert(node, unit),
-                    pos,
-                }));
-            } else {
-                return Err(RcalError::Parser(
-                    "Expected unit after 'in'".to_string(),
-                    pos,
-                ));
-            }
+            let target = self.parse_assignment()?;
+            return Ok(Box::new(Node {
+                expr: Expr::Convert(node, target),
+                pos,
+            }));
         }
         Ok(node)
     }

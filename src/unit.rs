@@ -19,7 +19,7 @@ impl Quantity {
     }
 
     pub fn is_angle(&self) -> bool {
-        self.dims == [0, 0, 0, 0, 0, 0, 0, 1]
+        self.dims == ANGLE
     }
 
     pub fn pow(self, exp: f64) -> Result<Self, String> {
@@ -101,41 +101,41 @@ impl Neg for Quantity {
     }
 }
 
-pub const D_M: [i8; 8] = [1, 0, 0, 0, 0, 0, 0, 0];
-pub const D_M2: [i8; 8] = [2, 0, 0, 0, 0, 0, 0, 0];
-pub const D_M3: [i8; 8] = [3, 0, 0, 0, 0, 0, 0, 0];
-pub const D_KG: [i8; 8] = [0, 1, 0, 0, 0, 0, 0, 0];
-pub const D_S: [i8; 8] = [0, 0, 1, 0, 0, 0, 0, 0];
-pub const D_A: [i8; 8] = [0, 0, 0, 1, 0, 0, 0, 0];
-pub const D_K: [i8; 8] = [0, 0, 0, 0, 1, 0, 0, 0];
-pub const D_MOL: [i8; 8] = [0, 0, 0, 0, 0, 1, 0, 0];
-pub const D_CD: [i8; 8] = [0, 0, 0, 0, 0, 0, 1, 0];
-pub const D_RAD: [i8; 8] = [0, 0, 0, 0, 0, 0, 0, 1];
+pub const LENGTH: [i8; 8] = [1, 0, 0, 0, 0, 0, 0, 0];
+pub const AREA: [i8; 8] = [2, 0, 0, 0, 0, 0, 0, 0];
+pub const VOLUME: [i8; 8] = [3, 0, 0, 0, 0, 0, 0, 0];
+pub const MASS: [i8; 8] = [0, 1, 0, 0, 0, 0, 0, 0];
+pub const TIME: [i8; 8] = [0, 0, 1, 0, 0, 0, 0, 0];
+pub const CURRENT: [i8; 8] = [0, 0, 0, 1, 0, 0, 0, 0];
+pub const TEMPERATURE: [i8; 8] = [0, 0, 0, 0, 1, 0, 0, 0];
+pub const AMOUNT_OF_SUBSTANCE: [i8; 8] = [0, 0, 0, 0, 0, 1, 0, 0];
+pub const LUMINOUS_INTENSITY: [i8; 8] = [0, 0, 0, 0, 0, 0, 1, 0];
+pub const ANGLE: [i8; 8] = [0, 0, 0, 0, 0, 0, 0, 1];
 
-pub const D_HZ: [i8; 8] = [0, 0, -1, 0, 0, 0, 0, 0];
-pub const D_MS: [i8; 8] = [1, 0, -1, 0, 0, 0, 0, 0];
-pub const D_MS2: [i8; 8] = [1, 0, -2, 0, 0, 0, 0, 0];
-pub const D_N: [i8; 8] = [1, 1, -2, 0, 0, 0, 0, 0];
-pub const D_PA: [i8; 8] = [-1, 1, -2, 0, 0, 0, 0, 0];
-pub const D_J: [i8; 8] = [2, 1, -2, 0, 0, 0, 0, 0];
-pub const D_W: [i8; 8] = [2, 1, -3, 0, 0, 0, 0, 0];
+pub const FREQUENCY: [i8; 8] = [0, 0, -1, 0, 0, 0, 0, 0];
+pub const VELOCITY: [i8; 8] = [1, 0, -1, 0, 0, 0, 0, 0];
+pub const ACCELERATION: [i8; 8] = [1, 0, -2, 0, 0, 0, 0, 0];
+pub const FORCE: [i8; 8] = [1, 1, -2, 0, 0, 0, 0, 0];
+pub const PRESSURE: [i8; 8] = [-1, 1, -2, 0, 0, 0, 0, 0];
+pub const ENERGY: [i8; 8] = [2, 1, -2, 0, 0, 0, 0, 0];
+pub const POWER: [i8; 8] = [2, 1, -3, 0, 0, 0, 0, 0];
 
-pub const D_G: [i8; 8] = [3, -1, -2, 0, 0, 0, 0, 0];
-pub const D_H: [i8; 8] = [2, 1, -1, 0, 0, 0, 0, 0];
-pub const D_K_BOLTZ: [i8; 8] = [2, 1, -2, 0, -1, 0, 0, 0];
-pub const D_NA: [i8; 8] = [0, 0, 0, 0, 0, -1, 0, 0];
+pub const GRAVITATIONAL_CONSTANT: [i8; 8] = [3, -1, -2, 0, 0, 0, 0, 0];
+pub const ACTION: [i8; 8] = [2, 1, -1, 0, 0, 0, 0, 0];
+pub const BOLTZMANN_CONSTANT: [i8; 8] = [2, 1, -2, 0, -1, 0, 0, 0];
+pub const AVOGADRO_CONSTANT: [i8; 8] = [0, 0, 0, 0, 0, -1, 0, 0];
 
 const SMART_UNITS: &[(&str, [i8; 8])] = &[
-    ("Hz", D_HZ),
-    ("N", D_N),
-    ("Pa", D_PA),
-    ("J", D_J),
-    ("W", D_W),
-    ("m s^-1", D_MS),
-    ("m s^-2", D_MS2),
-    ("m^2", D_M2),
-    ("m^3", D_M3),
-    ("rad", D_RAD),
+    ("Hz", FREQUENCY),
+    ("N", FORCE),
+    ("Pa", PRESSURE),
+    ("J", ENERGY),
+    ("W", POWER),
+    ("m s^-1", VELOCITY),
+    ("m s^-2", ACCELERATION),
+    ("m^2", AREA),
+    ("m^3", VOLUME),
+    ("rad", ANGLE),
 ];
 
 impl std::fmt::Display for Quantity {
@@ -178,27 +178,27 @@ mod tests {
     fn test_quantity_mul() {
         let q1 = Quantity {
             value: 2.0,
-            dims: [1, 0, 0, 0, 0, 0, 0, 0],
-        }; // 2m
+            dims: LENGTH,
+        };
         let q2 = Quantity {
             value: 3.0,
-            dims: [1, 0, 0, 0, 0, 0, 0, 0],
-        }; // 3m
+            dims: LENGTH,
+        };
         let res = q1 * q2;
         assert_eq!(res.value, 6.0);
-        assert_eq!(res.dims[0], 2); // m^2
+        assert_eq!(res.dims, AREA);
     }
 
     #[test]
     fn test_quantity_add_err() {
         let q1 = Quantity {
             value: 2.0,
-            dims: [1, 0, 0, 0, 0, 0, 0, 0],
-        }; // 2m
+            dims: LENGTH,
+        };
         let q2 = Quantity {
             value: 3.0,
-            dims: [0, 1, 0, 0, 0, 0, 0, 0],
-        }; // 3kg
+            dims: MASS,
+        };
         assert!((q1 + q2).is_err());
     }
 

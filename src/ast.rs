@@ -22,7 +22,7 @@ pub enum Expr {
     Binary(BinOp, Box<Node>, Box<Node>),
     Factorial(Box<Node>),
     Unary(UnOp, Box<Node>),
-    Convert(Box<Node>, String),
+    Convert(Box<Node>, Box<Node>),
 }
 
 impl fmt::Display for Expr {
@@ -41,7 +41,7 @@ impl fmt::Display for Expr {
             Expr::Binary(op, l, r) => write!(f, "({} {} {})", l, op, r),
             Expr::Factorial(e) => write!(f, "{}!", e),
             Expr::Unary(op, e) => write!(f, "{}{}", op, e),
-            Expr::Convert(e, unit) => write!(f, "{} in {}", e, unit),
+            Expr::Convert(e, target) => write!(f, "{} in {}", e, target),
         }
     }
 }

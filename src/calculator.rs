@@ -6,6 +6,7 @@ use crate::parser::Parser;
 use crate::unit::Quantity;
 use std::collections::HashMap;
 
+#[derive(Clone)]
 pub struct UserFunction {
     pub params: Vec<String>,
     pub body: Box<Node>,

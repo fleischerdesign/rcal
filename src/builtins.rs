@@ -1,6 +1,7 @@
 use crate::unit::{
-    D_A, D_CD, D_G, D_H, D_HZ, D_J, D_K, D_K_BOLTZ, D_KG, D_M, D_M3, D_MOL, D_MS, D_MS2, D_N, D_NA,
-    D_PA, D_RAD, D_S, D_W, Quantity,
+    ACCELERATION, ACTION, AMOUNT_OF_SUBSTANCE, ANGLE, AVOGADRO_CONSTANT, BOLTZMANN_CONSTANT,
+    CURRENT, ENERGY, FORCE, FREQUENCY, GRAVITATIONAL_CONSTANT, LENGTH, LUMINOUS_INTENSITY, MASS,
+    POWER, PRESSURE, Quantity, TEMPERATURE, TIME, VELOCITY, VOLUME,
 };
 
 pub enum Arity {
@@ -27,7 +28,7 @@ fn inv_trig(args: &[Quantity], f: fn(f64) -> f64) -> Result<Quantity, String> {
     }
     Ok(Quantity {
         value: f(args[0].value),
-        dims: D_RAD,
+        dims: ANGLE,
     })
 }
 
@@ -305,42 +306,42 @@ pub const CONSTANTS: &[(&str, Quantity)] = &[
         "c",
         Quantity {
             value: 299_792_458.0,
-            dims: D_MS,
+            dims: VELOCITY,
         },
     ),
     (
         "G",
         Quantity {
             value: 6.674_30e-11,
-            dims: D_G,
+            dims: GRAVITATIONAL_CONSTANT,
         },
     ),
     (
         "planck",
         Quantity {
             value: 6.626_070_15e-34,
-            dims: D_H,
+            dims: ACTION,
         },
     ),
     (
         "k_b",
         Quantity {
             value: 1.380_649e-23,
-            dims: D_K_BOLTZ,
+            dims: BOLTZMANN_CONSTANT,
         },
     ),
     (
         "Na",
         Quantity {
             value: 6.022_140_76e23,
-            dims: D_NA,
+            dims: AVOGADRO_CONSTANT,
         },
     ),
     (
         "g0",
         Quantity {
             value: 9.806_65,
-            dims: D_MS2,
+            dims: ACCELERATION,
         },
     ),
 ];
@@ -350,238 +351,238 @@ pub const UNITS: &[(&str, Quantity)] = &[
         "rad",
         Quantity {
             value: 1.0,
-            dims: D_RAD,
+            dims: ANGLE,
         },
     ),
     (
         "deg",
         Quantity {
             value: std::f64::consts::PI / 180.0,
-            dims: D_RAD,
+            dims: ANGLE,
         },
     ),
     (
         "m",
         Quantity {
             value: 1.0,
-            dims: D_M,
+            dims: LENGTH,
         },
     ),
     (
         "cm",
         Quantity {
             value: 0.01,
-            dims: D_M,
+            dims: LENGTH,
         },
     ),
     (
         "mm",
         Quantity {
             value: 0.001,
-            dims: D_M,
+            dims: LENGTH,
         },
     ),
     (
         "um",
         Quantity {
             value: 1e-6,
-            dims: D_M,
+            dims: LENGTH,
         },
     ),
     (
         "nm",
         Quantity {
             value: 1e-9,
-            dims: D_M,
+            dims: LENGTH,
         },
     ),
     (
         "km",
         Quantity {
             value: 1000.0,
-            dims: D_M,
+            dims: LENGTH,
         },
     ),
     (
         "kg",
         Quantity {
             value: 1.0,
-            dims: D_KG,
+            dims: MASS,
         },
     ),
     (
         "g",
         Quantity {
             value: 0.001,
-            dims: D_KG,
+            dims: MASS,
         },
     ),
     (
         "s",
         Quantity {
             value: 1.0,
-            dims: D_S,
+            dims: TIME,
         },
     ),
     (
         "ms",
         Quantity {
             value: 0.001,
-            dims: D_S,
+            dims: TIME,
         },
     ),
     (
         "us",
         Quantity {
             value: 1e-6,
-            dims: D_S,
+            dims: TIME,
         },
     ),
     (
         "ns",
         Quantity {
             value: 1e-9,
-            dims: D_S,
+            dims: TIME,
         },
     ),
     (
         "min",
         Quantity {
             value: 60.0,
-            dims: D_S,
+            dims: TIME,
         },
     ),
     (
         "h",
         Quantity {
             value: 3600.0,
-            dims: D_S,
+            dims: TIME,
         },
     ),
     (
         "Wh",
         Quantity {
             value: 3600.0,
-            dims: D_J,
+            dims: ENERGY,
         },
     ),
     (
         "kWh",
         Quantity {
             value: 3_600_000.0,
-            dims: D_J,
+            dims: ENERGY,
         },
     ),
     (
         "kmh",
         Quantity {
             value: 1000.0 / 3600.0,
-            dims: D_MS,
+            dims: VELOCITY,
         },
     ),
     (
         "A",
         Quantity {
             value: 1.0,
-            dims: D_A,
+            dims: CURRENT,
         },
     ),
     (
         "K",
         Quantity {
             value: 1.0,
-            dims: D_K,
+            dims: TEMPERATURE,
         },
     ),
     (
         "mol",
         Quantity {
             value: 1.0,
-            dims: D_MOL,
+            dims: AMOUNT_OF_SUBSTANCE,
         },
     ),
     (
         "cd",
         Quantity {
             value: 1.0,
-            dims: D_CD,
+            dims: LUMINOUS_INTENSITY,
         },
     ),
     (
         "l",
         Quantity {
             value: 0.001,
-            dims: D_M3,
+            dims: VOLUME,
         },
     ),
     (
         "bar",
         Quantity {
             value: 100_000.0,
-            dims: D_PA,
+            dims: PRESSURE,
         },
     ),
     (
         "atm",
         Quantity {
             value: 101_325.0,
-            dims: D_PA,
+            dims: PRESSURE,
         },
     ),
     (
         "inch",
         Quantity {
             value: 0.0254,
-            dims: D_M,
+            dims: LENGTH,
         },
     ),
     (
         "ft",
         Quantity {
             value: 0.3048,
-            dims: D_M,
+            dims: LENGTH,
         },
     ),
     (
         "eV",
         Quantity {
             value: 1.602_176_634e-19,
-            dims: D_J,
+            dims: ENERGY,
         },
     ),
     (
         "N",
         Quantity {
             value: 1.0,
-            dims: D_N,
+            dims: FORCE,
         },
     ),
     (
         "J",
         Quantity {
             value: 1.0,
-            dims: D_J,
+            dims: ENERGY,
         },
     ),
     (
         "W",
         Quantity {
             value: 1.0,
-            dims: D_W,
+            dims: POWER,
         },
     ),
     (
         "Pa",
         Quantity {
             value: 1.0,
-            dims: D_PA,
+            dims: PRESSURE,
         },
     ),
     (
         "Hz",
         Quantity {
             value: 1.0,
-            dims: D_HZ,
+            dims: FREQUENCY,
         },
     ),
 ];
@@ -595,7 +596,7 @@ pub fn is_protected(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::unit::D_M2;
+    use crate::unit::AREA;
 
     #[test]
     fn test_trig_scalar() {
@@ -617,11 +618,11 @@ mod tests {
         let sqrt_f = BUILTINS.iter().find(|b| b.name == "sqrt").unwrap();
         let m2 = Quantity {
             value: 16.0,
-            dims: D_M2,
+            dims: AREA,
         };
         let res = (sqrt_f.func)(&[m2]).unwrap();
         assert_eq!(res.value, 4.0);
-        assert_eq!(res.dims, D_M);
+        assert_eq!(res.dims, LENGTH);
     }
 
     #[test]
@@ -629,11 +630,11 @@ mod tests {
         let sum_f = BUILTINS.iter().find(|b| b.name == "sum").unwrap();
         let m = Quantity {
             value: 1.0,
-            dims: D_M,
+            dims: LENGTH,
         };
         let kg = Quantity {
             value: 1.0,
-            dims: D_KG,
+            dims: MASS,
         };
 
         assert!((sum_f.func)(&[m, m]).is_ok());

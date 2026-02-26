@@ -1,5 +1,4 @@
 use crate::ast::Expr;
-use crate::builtins::UNITS;
 use crate::calculator::Calculator;
 use crate::completer::RcalHelper;
 use rustyline::error::ReadlineError;
@@ -127,32 +126,36 @@ impl Cli {
                     if !matches!(expr, Expr::Assign(_, _))
                         && !matches!(expr, Expr::FnDefine(_, _, _))
                     {
-                        if let Expr::Convert(_, ref target) = expr {
-                            if let Some((_, unit_val)) = UNITS.iter().find(|(n, _)| n == target) {
-                                if v.dims != unit_val.dims {
-                                    crate::error::RcalError::Math(
-                                        format!(
-                                            "Cannot convert to unit with different dimensions: {}",
-                                            target
-                                        ),
-                                        0,
-                                    )
-                                    .report();
-                                    continue;
+                        if let Expr::Convert(_, ref target_node) = expr {
+                            // We evaluate the target expression to get its unit value and dimensions
+                            let mut vars = self.calc.vars().clone();
+                            let mut funcs = self.calc.funcs().clone();
+                            match crate::evaluator::evaluate(target_node, &mut vars, &mut funcs) {
+                                Ok(unit_val) => {
+                                    if v.dims != unit_val.dims {
+                                        crate::error::RcalError::Math(
+                                            format!("Dimension mismatch: result is {}, but target is {}", v, unit_val),
+                                            target_node.pos
+                                        ).report();
+                                        continue;
+                                    }
+                                    if unit_val.value == 0.0 {
+                                        crate::error::RcalError::Math(
+                                            "Cannot convert to zero-value unit".to_string(),
+                                            target_node.pos,
+                                        )
+                                        .report();
+                                        continue;
+                                    }
+                                    println!(
+                                        "{}= {} {}{}",
+                                        GREEN,
+                                        v.value / unit_val.value,
+                                        target_node,
+                                        RESET
+                                    );
                                 }
-                                println!(
-                                    "{}= {} {}{}",
-                                    GREEN,
-                                    v.value / unit_val.value,
-                                    target,
-                                    RESET
-                                );
-                            } else {
-                                crate::error::RcalError::Math(
-                                    format!("Unknown unit for conversion: {}", target),
-                                    0,
-                                )
-                                .report();
+                                Err(e) => e.report(),
                             }
                         } else if let Expr::Function(n, _) = expr {
                             if n == "hex" && v.is_scalar() {
