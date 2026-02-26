@@ -275,7 +275,7 @@ mod tests {
         let toks = tokenize("1 + 2 * 3").unwrap();
         let mut p = Parser::new(toks);
         let ast = p.parse_expr().unwrap();
-        
+
         if let Expr::Binary(op, _, right) = ast.expr {
             assert_eq!(op, BinOp::Add);
             if let Expr::Binary(op2, _, _) = right.expr {
@@ -293,7 +293,7 @@ mod tests {
         let toks = tokenize("2pi (1+2)").unwrap();
         let mut p = Parser::new(toks);
         let ast = p.parse_expr().unwrap();
-        
+
         if let Expr::Binary(BinOp::Mul, _, _) = ast.expr {
         } else {
             panic!("Expected implicit multiplication, got {:?}", ast.expr);
@@ -305,7 +305,7 @@ mod tests {
         let toks = tokenize("f(x, y) = x + y").unwrap();
         let mut p = Parser::new(toks);
         let ast = p.parse_expr().unwrap();
-        
+
         if let Expr::FnDefine(name, params, _) = ast.expr {
             assert_eq!(name, "f");
             assert_eq!(params, vec!["x", "y"]);

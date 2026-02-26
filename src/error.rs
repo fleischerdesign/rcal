@@ -32,13 +32,7 @@ impl RcalError {
 
         if let Some(pos) = self.pos() {
             println!("{}", input);
-            println!(
-                "{}{}^-- {}{}",
-                red,
-                " ".repeat(pos),
-                self,
-                reset
-            );
+            println!("{}{}^-- {}{}", red, " ".repeat(pos), self, reset);
         } else {
             println!("{}Error: {}{}", red, self, reset);
         }

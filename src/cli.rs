@@ -40,7 +40,8 @@ impl Cli {
                         }
                     }
                     Err(e) => {
-                        crate::error::RcalError::Cli(format!("Failed to read file: {}", e)).report();
+                        crate::error::RcalError::Cli(format!("Failed to read file: {}", e))
+                            .report();
                     }
                 }
             } else {

@@ -405,7 +405,10 @@ mod tests {
     #[test]
     fn test_sqrt_dims() {
         let sqrt_f = BUILTINS.iter().find(|b| b.name == "sqrt").unwrap();
-        let m2 = Quantity { value: 16.0, dims: [2, 0, 0, 0, 0, 0, 0, 0] };
+        let m2 = Quantity {
+            value: 16.0,
+            dims: [2, 0, 0, 0, 0, 0, 0, 0],
+        };
         let res = (sqrt_f.func)(&[m2]).unwrap();
         assert_eq!(res.value, 4.0);
         assert_eq!(res.dims[0], 1); // sqrt(m^2) = m
@@ -414,9 +417,15 @@ mod tests {
     #[test]
     fn test_aggregate_dims() {
         let sum_f = BUILTINS.iter().find(|b| b.name == "sum").unwrap();
-        let m = Quantity { value: 1.0, dims: [1, 0, 0, 0, 0, 0, 0, 0] };
-        let kg = Quantity { value: 1.0, dims: [0, 1, 0, 0, 0, 0, 0, 0] };
-        
+        let m = Quantity {
+            value: 1.0,
+            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+        };
+        let kg = Quantity {
+            value: 1.0,
+            dims: [0, 1, 0, 0, 0, 0, 0, 0],
+        };
+
         assert!((sum_f.func)(&[m, m]).is_ok());
         assert!((sum_f.func)(&[m, kg]).is_err());
     }

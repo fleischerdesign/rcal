@@ -150,7 +150,11 @@ mod tests {
     use crate::lexer::tokenize;
     use crate::parser::Parser;
 
-    fn eval_str(input: &str, vars: &mut HashMap<String, Quantity>, funcs: &mut HashMap<String, UserFunction>) -> Result<Quantity, RcalError> {
+    fn eval_str(
+        input: &str,
+        vars: &mut HashMap<String, Quantity>,
+        funcs: &mut HashMap<String, UserFunction>,
+    ) -> Result<Quantity, RcalError> {
         let toks = tokenize(input).unwrap();
         let mut p = Parser::new(toks);
         let ast = p.parse_expr().unwrap();
