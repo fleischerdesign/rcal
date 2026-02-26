@@ -3,6 +3,7 @@ use crate::error::RcalError;
 use crate::evaluator::evaluate;
 use crate::lexer::{TokenKind, tokenize};
 use crate::parser::Parser;
+use crate::unit::Quantity;
 use std::collections::HashMap;
 
 pub struct UserFunction {
@@ -11,7 +12,7 @@ pub struct UserFunction {
 }
 
 pub struct Calculator {
-    vars: HashMap<String, f64>,
+    vars: HashMap<String, Quantity>,
     funcs: HashMap<String, UserFunction>,
 }
 
@@ -23,7 +24,7 @@ impl Calculator {
         }
     }
 
-    pub fn eval(&mut self, input: &str) -> Result<(f64, Expr), RcalError> {
+    pub fn eval(&mut self, input: &str) -> Result<(Quantity, Expr), RcalError> {
         let toks = tokenize(input)?;
         let mut p = Parser::new(toks);
         let ast = p.parse_expr()?;
@@ -40,7 +41,7 @@ impl Calculator {
         Ok((v, ast.expr))
     }
 
-    pub fn vars(&self) -> &HashMap<String, f64> {
+    pub fn vars(&self) -> &HashMap<String, Quantity> {
         &self.vars
     }
 

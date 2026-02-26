@@ -4,6 +4,10 @@ rcal is a powerful, lightweight command-line calculator written in Rust. It supp
 
 ## Features
 
+- **Professional Unit System**: Full dimensional analysis using SI base units (Length, Mass, Time, etc.).
+- **Dimensional Safety**: Prevents impossible calculations like `5m + 10s`.
+- **Case-Sensitivity**: Correct handling of physical units (e.g., `Pa`, `Hz`, `N`, `J`).
+- **Implicit Multiplication**: Natural syntax support like `10m / 2s` or `2pi`.
 - **Arithmetic operations**: addition, subtraction, multiplication, division, modulo, and exponentiation.
 - **User-defined functions**: define your own functions like `f(x, y) = x^2 + y^2` and reuse them.
 - **Advanced mathematics**: factorials and a variety of trigonometric and logarithmic functions.
@@ -55,6 +59,16 @@ cargo run -- "10 + 5 * 2"
 
 ## Mathematical Reference
 
+### Units & Dimensional Analysis
+
+Units are case-sensitive. `rcal` performs full dimensional analysis on all calculations.
+
+- **Length**: `m`, `cm`, `mm`, `km`
+- **Mass**: `kg`, `g`
+- **Time**: `s`, `min`, `h`
+- **Angles**: `rad`, `deg`
+- **Derived Units**: `N` (Newton), `J` (Joule), `W` (Watt), `Pa` (Pascal), `Hz` (Hertz)
+
 ### Operations
 
 - `+` Addition
@@ -102,6 +116,16 @@ cargo run -- "10 + 5 * 2"
 
 ## Examples
 
+Unit calculation and Dimensional Safety:
+```text
+> 100km / (1h)
+= 27.77777777777778 m s^-1
+> 5N * 2m
+= 10 m^2 kg s^-2
+> 5m + 10s
+Math Error: Dimension mismatch
+```
+
 Basic calculation:
 ```text
 > 5 + 3 * 2
@@ -120,11 +144,11 @@ User-defined functions:
 
 Using variables and 'ans':
 ```text
-> radius = 5
+> radius = 5m
 > area = pi * radius^2
-= 78.53981633974483
+= 78.53981633974483 m^2
 > ans / 2
-= 39.269908169872415
+= 39.269908169872415 m^2
 ```
 
 Listing definitions:
@@ -159,8 +183,8 @@ Using degrees:
 
 Sequential execution:
 ```bash
-cargo run -- "x = 10; y = 20; (x + y) / 2"
-= 15
+cargo run -- "x = 10m; y = 20m; (x + y) / 2"
+= 15 m
 ```
 
 ## Error Handling
@@ -171,6 +195,10 @@ rcal provides precise feedback when an error occurs:
 > 10 / (5 - 5)
 10 / (5 - 5)
    ^-- Math Error: Division by zero
+
+> 5m + 10s
+5m + 10s
+   ^-- Math Error: Dimension mismatch
 ```
 
 ## License

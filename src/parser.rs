@@ -35,7 +35,7 @@ impl Parser {
                 self.consume();
                 self.consume();
                 return Ok(Box::new(Node {
-                    expr: Expr::Assign(name.to_lowercase(), self.parse_expr()?),
+                    expr: Expr::Assign(name, self.parse_expr()?),
                     pos,
                 }));
             }
@@ -48,7 +48,7 @@ impl Parser {
                 while let Some(tok) = self.tokens.get(lookahead) {
                     match &tok.kind {
                         TokenKind::Identifier(p) => {
-                            params.push(p.to_lowercase());
+                            params.push(p.clone());
                             lookahead += 1;
                         }
                         TokenKind::Comma => lookahead += 1,
@@ -66,18 +66,18 @@ impl Parser {
 
                 if is_def {
                     let (name, pos) = (name.clone(), self.cur().pos);
-                    self.consume(); // name
-                    self.consume(); // (
+                    self.consume();
+                    self.consume();
                     while let TokenKind::Identifier(_) = self.cur().kind {
                         self.consume();
                         if self.cur().kind == TokenKind::Comma {
                             self.consume();
                         }
                     }
-                    self.consume(); // )
-                    self.consume(); // =
+                    self.consume();
+                    self.consume();
                     return Ok(Box::new(Node {
-                        expr: Expr::FnDefine(name.to_lowercase(), params, self.parse_expr()?),
+                        expr: Expr::FnDefine(name, params, self.parse_expr()?),
                         pos,
                     }));
                 }
@@ -113,13 +113,13 @@ impl Parser {
     }
 
     fn parse_term(&mut self) -> Result<Box<Node>, RcalError> {
-        let mut left = self.parse_power()?;
+        let mut left = self.parse_implicit()?;
         loop {
             let (kind, pos) = (self.cur().kind.clone(), self.cur().pos);
             match kind {
                 TokenKind::Multiply | TokenKind::Divide | TokenKind::Modulo => {
                     self.consume();
-                    let right = self.parse_power()?;
+                    let right = self.parse_implicit()?;
                     let op = match kind {
                         TokenKind::Multiply => BinOp::Mul,
                         TokenKind::Divide => BinOp::Div,
@@ -130,6 +130,17 @@ impl Parser {
                         pos,
                     });
                 }
+                _ => break,
+            }
+        }
+        Ok(left)
+    }
+
+    fn parse_implicit(&mut self) -> Result<Box<Node>, RcalError> {
+        let mut left = self.parse_power()?;
+        loop {
+            let pos = self.cur().pos;
+            match &self.cur().kind {
                 TokenKind::LParen | TokenKind::Identifier(_) | TokenKind::Number(_) => {
                     let right = self.parse_power()?;
                     left = Box::new(Node {
@@ -171,28 +182,27 @@ impl Parser {
     }
 
     fn parse_unary(&mut self) -> Result<Box<Node>, RcalError> {
-        let pos = self.cur().pos;
-        match self.cur().kind {
-            TokenKind::Minus | TokenKind::Plus => {
-                let kind = self.cur().kind.clone();
+        let (kind, pos) = (self.cur().kind.clone(), self.cur().pos);
+        match kind {
+            TokenKind::Plus | TokenKind::Minus => {
                 self.consume();
-                let op = if kind == TokenKind::Minus {
-                    UnOp::Neg
-                } else {
+                let op = if kind == TokenKind::Plus {
                     UnOp::Pos
+                } else {
+                    UnOp::Neg
                 };
                 Ok(Box::new(Node {
                     expr: Expr::Unary(op, self.parse_unary()?),
                     pos,
                 }))
             }
-            _ => self.parse_factor(),
+            _ => self.parse_primary(),
         }
     }
 
-    fn parse_factor(&mut self) -> Result<Box<Node>, RcalError> {
-        let pos = self.cur().pos;
-        match self.cur().kind.clone() {
+    fn parse_primary(&mut self) -> Result<Box<Node>, RcalError> {
+        let (kind, pos) = (self.cur().kind.clone(), self.cur().pos);
+        match kind {
             TokenKind::Number(n) => {
                 self.consume();
                 Ok(Box::new(Node {
@@ -201,8 +211,8 @@ impl Parser {
                 }))
             }
             TokenKind::Identifier(name) => {
+                let name = name.clone();
                 self.consume();
-                let name = name.to_lowercase();
                 if self.cur().kind == TokenKind::LParen {
                     self.consume();
                     let mut args = Vec::new();
@@ -216,18 +226,14 @@ impl Parser {
                             }
                         }
                     }
-                    if self.cur().kind == TokenKind::RParen {
-                        self.consume();
-                        Ok(Box::new(Node {
-                            expr: Expr::Function(name, args),
-                            pos,
-                        }))
-                    } else {
-                        Err(RcalError::Parser(
-                            "Lacking closing parenthesis".to_string(),
-                            self.cur().pos,
-                        ))
+                    if self.cur().kind != TokenKind::RParen {
+                        return Err(RcalError::Parser("Expected ')'".to_string(), self.cur().pos));
                     }
+                    self.consume();
+                    Ok(Box::new(Node {
+                        expr: Expr::Function(name, args),
+                        pos,
+                    }))
                 } else {
                     Ok(Box::new(Node {
                         expr: Expr::Variable(name),
@@ -237,23 +243,18 @@ impl Parser {
             }
             TokenKind::LParen => {
                 self.consume();
-                let e = self.parse_expr()?;
-                if self.cur().kind == TokenKind::RParen {
-                    self.consume();
-                    Ok(e)
-                } else {
-                    Err(RcalError::Parser(
-                        "Lacking closing parenthesis".to_string(),
+                let node = self.parse_expr()?;
+                if self.cur().kind != TokenKind::RParen {
+                    return Err(RcalError::Parser(
+                        format!("Expected ')', found {:?}", self.cur().kind),
                         self.cur().pos,
-                    ))
+                    ));
                 }
+                self.consume();
+                Ok(node)
             }
-            TokenKind::EOF => Err(RcalError::Parser(
-                "Unexpected end of input".to_string(),
-                pos,
-            )),
             _ => Err(RcalError::Parser(
-                format!("Unexpected token {:?}", self.cur().kind),
+                format!("Unexpected token {:?}", kind),
                 pos,
             )),
         }

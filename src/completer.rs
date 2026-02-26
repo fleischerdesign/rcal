@@ -1,4 +1,4 @@
-use crate::builtins::{BUILTINS, CONSTANTS};
+use crate::builtins::{BUILTINS, CONSTANTS, UNITS};
 use crate::lexer::{tokenize, TokenKind};
 use rustyline::completion::{Completer, Pair};
 use rustyline::highlight::{CmdKind, Highlighter};
@@ -33,6 +33,14 @@ impl Completer for RcalHelper {
             }
         }
         for (name, _) in CONSTANTS {
+            if name.starts_with(word) {
+                candidates.push(Pair {
+                    display: name.to_string(),
+                    replacement: name.to_string(),
+                });
+            }
+        }
+        for (name, _) in UNITS {
             if name.starts_with(word) {
                 candidates.push(Pair {
                     display: name.to_string(),
@@ -82,6 +90,8 @@ impl Highlighter for RcalHelper {
                         Some("\x1b[34m")
                     } else if CONSTANTS.iter().any(|(n, _)| n == name) {
                         Some("\x1b[33m")
+                    } else if UNITS.iter().any(|(n, _)| n == name) {
+                        Some("\x1b[32m")
                     } else {
                         Some("\x1b[36m")
                     }

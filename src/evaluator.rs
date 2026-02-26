@@ -2,27 +2,24 @@ use crate::{
     ast::{BinOp, Expr, Node, UnOp},
     calculator::UserFunction,
     error::RcalError,
-    builtins::{BUILTINS, CONSTANTS, Arity},
+    builtins::{BUILTINS, CONSTANTS, UNITS, Arity, is_protected},
+    unit::Quantity,
 };
 use std::collections::HashMap;
 
 pub fn evaluate(
     node: &Node,
-    vars: &mut HashMap<String, f64>,
+    vars: &mut HashMap<String, Quantity>,
     funcs: &mut HashMap<String, UserFunction>,
-) -> Result<f64, RcalError> {
+) -> Result<Quantity, RcalError> {
     let pos = node.pos;
-    let check = |res: f64| {
-        if res.is_infinite() {
-            Err(RcalError::Math("Overflow".to_string(), pos))
-        } else {
-            Ok(res)
-        }
-    };
     match &node.expr {
-        Expr::Number(n) => Ok(*n),
+        Expr::Number(n) => Ok(Quantity::scalar(*n)),
         Expr::Variable(name) => {
             if let Some((_, val)) = CONSTANTS.iter().find(|(n, _)| *n == name) {
+                return Ok(*val);
+            }
+            if let Some((_, val)) = UNITS.iter().find(|(n, _)| *n == name) {
                 return Ok(*val);
             }
             vars.get(name)
@@ -30,11 +27,17 @@ pub fn evaluate(
                 .ok_or_else(|| RcalError::Math(format!("Unknown variable '{}'", name), pos))
         }
         Expr::Assign(name, e) => {
+            if is_protected(name) {
+                return Err(RcalError::Math(format!("'{}' is a protected name", name), pos));
+            }
             let v = evaluate(e, vars, funcs)?;
             vars.insert(name.clone(), v);
             Ok(v)
         }
         Expr::FnDefine(name, params, body) => {
+            if is_protected(name) {
+                return Err(RcalError::Math(format!("'{}' is a protected name", name), pos));
+            }
             funcs.insert(
                 name.clone(),
                 UserFunction {
@@ -42,7 +45,7 @@ pub fn evaluate(
                     body: body.clone(),
                 },
             );
-            Ok(0.0)
+            Ok(Quantity::scalar(0.0))
         }
         Expr::Function(name, args) => {
             let vs = args
@@ -80,48 +83,50 @@ pub fn evaluate(
         Expr::Binary(op, l, r) => {
             let (lv, rv) = (evaluate(l, vars, funcs)?, evaluate(r, vars, funcs)?);
             match op {
-                BinOp::Add => check(lv + rv),
-                BinOp::Sub => check(lv - rv),
-                BinOp::Mul => check(lv * rv),
+                BinOp::Add => (lv + rv).map_err(|e| RcalError::Math(e, pos)),
+                BinOp::Sub => (lv - rv).map_err(|e| RcalError::Math(e, pos)),
+                BinOp::Mul => Ok(lv * rv),
                 BinOp::Div => {
-                    if rv == 0.0 {
+                    if rv.value == 0.0 {
                         Err(RcalError::Math("Division by zero".to_string(), pos))
                     } else {
-                        check(lv / rv)
+                        Ok(lv / rv)
                     }
                 }
                 BinOp::Mod => {
-                    if rv == 0.0 {
+                    if !rv.is_scalar() || !lv.is_scalar() {
+                        return Err(RcalError::Math("Modulo requires scalars".into(), pos));
+                    }
+                    if rv.value == 0.0 {
                         Err(RcalError::Math("Modulo by zero".to_string(), pos))
                     } else {
-                        Ok(lv % rv)
+                        Ok(Quantity::scalar(lv.value % rv.value))
                     }
                 }
                 BinOp::Pow => {
-                    let res = lv.powf(rv);
-                    if res.is_infinite() {
-                        check(res)
-                    } else if res.is_nan() {
-                        Err(RcalError::Math("Invalid power".to_string(), pos))
-                    } else {
-                        Ok(res)
+                    if !rv.is_scalar() {
+                        return Err(RcalError::Math("Exponent must be scalar".into(), pos));
                     }
+                    lv.pow(rv.value).map_err(|e| RcalError::Math(e, pos))
                 }
             }
         }
         Expr::Factorial(e) => {
             let v = evaluate(e, vars, funcs)?;
-            if v < 0.0 || v.fract() != 0.0 {
+            if !v.is_scalar() {
+                return Err(RcalError::Math("Factorial requires scalar".into(), pos));
+            }
+            if v.value < 0.0 || v.value.fract() != 0.0 {
                 return Err(RcalError::Math("Needs non-neg int".to_string(), pos));
             }
-            if v > 170.0 {
+            if v.value > 170.0 {
                 return Err(RcalError::Math("Factorial overflow".to_string(), pos));
             }
             let mut r = 1.0;
-            for i in 1..=(v as u64) {
+            for i in 1..=(v.value as u64) {
                 r *= i as f64;
             }
-            Ok(r)
+            Ok(Quantity::scalar(r))
         }
         Expr::Unary(op, e) => {
             let v = evaluate(e, vars, funcs)?;

@@ -7,6 +7,7 @@ mod evaluator;
 mod builtins;
 mod lexer;
 mod parser;
+mod unit;
 
 use cli::Cli;
 
