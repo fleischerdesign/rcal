@@ -382,3 +382,59 @@ pub fn is_protected(name: &str) -> bool {
         || UNITS.iter().any(|(n, _)| *n == name)
         || BUILTINS.iter().any(|b| b.name == name)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_trig_scalar() {
+        let sin_f = BUILTINS.iter().find(|b| b.name == "sin").unwrap();
+        let res = (sin_f.func)(&[Quantity::scalar(0.0)]).unwrap();
+        assert_eq!(res.value, 0.0);
+        assert!(res.is_scalar());
+    }
+
+    #[test]
+    fn test_inv_trig_returns_angle() {
+        let asin_f = BUILTINS.iter().find(|b| b.name == "asin").unwrap();
+        let res = (asin_f.func)(&[Quantity::scalar(0.0)]).unwrap();
+        assert!(res.is_angle());
+    }
+
+    #[test]
+    fn test_sqrt_dims() {
+        let sqrt_f = BUILTINS.iter().find(|b| b.name == "sqrt").unwrap();
+        let m2 = Quantity { value: 16.0, dims: [2, 0, 0, 0, 0, 0, 0, 0] };
+        let res = (sqrt_f.func)(&[m2]).unwrap();
+        assert_eq!(res.value, 4.0);
+        assert_eq!(res.dims[0], 1); // sqrt(m^2) = m
+    }
+
+    #[test]
+    fn test_aggregate_dims() {
+        let sum_f = BUILTINS.iter().find(|b| b.name == "sum").unwrap();
+        let m = Quantity { value: 1.0, dims: [1, 0, 0, 0, 0, 0, 0, 0] };
+        let kg = Quantity { value: 1.0, dims: [0, 1, 0, 0, 0, 0, 0, 0] };
+        
+        assert!((sum_f.func)(&[m, m]).is_ok());
+        assert!((sum_f.func)(&[m, kg]).is_err());
+    }
+
+    #[test]
+    fn test_round() {
+        let round_f = BUILTINS.iter().find(|b| b.name == "round").unwrap();
+        let val = Quantity::scalar(1.23456);
+        let prec = Quantity::scalar(2.0);
+        let res = (round_f.func)(&[val, prec]).unwrap();
+        assert_eq!(res.value, 1.23);
+    }
+
+    #[test]
+    fn test_protection() {
+        assert!(is_protected("pi"));
+        assert!(is_protected("sin"));
+        assert!(is_protected("m"));
+        assert!(!is_protected("my_var"));
+    }
+}

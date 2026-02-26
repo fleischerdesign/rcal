@@ -121,3 +121,31 @@ impl std::fmt::Display for Quantity {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_quantity_mul() {
+        let q1 = Quantity { value: 2.0, dims: [1, 0, 0, 0, 0, 0, 0, 0] }; // 2m
+        let q2 = Quantity { value: 3.0, dims: [1, 0, 0, 0, 0, 0, 0, 0] }; // 3m
+        let res = q1 * q2;
+        assert_eq!(res.value, 6.0);
+        assert_eq!(res.dims[0], 2); // m^2
+    }
+
+    #[test]
+    fn test_quantity_add_err() {
+        let q1 = Quantity { value: 2.0, dims: [1, 0, 0, 0, 0, 0, 0, 0] }; // 2m
+        let q2 = Quantity { value: 3.0, dims: [0, 1, 0, 0, 0, 0, 0, 0] }; // 3kg
+        assert!((q1 + q2).is_err());
+    }
+
+    #[test]
+    fn test_scalar() {
+        let q = Quantity::scalar(5.0);
+        assert!(q.is_scalar());
+        assert_eq!(q.value, 5.0);
+    }
+}

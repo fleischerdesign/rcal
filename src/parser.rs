@@ -263,3 +263,54 @@ impl Parser {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ast::BinOp;
+    use crate::lexer::tokenize;
+
+    #[test]
+    fn test_precedence() {
+        let toks = tokenize("1 + 2 * 3").unwrap();
+        let mut p = Parser::new(toks);
+        let ast = p.parse_expr().unwrap();
+        
+        if let Expr::Binary(op, _, right) = ast.expr {
+            assert_eq!(op, BinOp::Add);
+            if let Expr::Binary(op2, _, _) = right.expr {
+                assert_eq!(op2, BinOp::Mul);
+            } else {
+                panic!("Expected binary multiplication on the right");
+            }
+        } else {
+            panic!("Expected binary addition at top level");
+        }
+    }
+
+    #[test]
+    fn test_implicit_mul() {
+        let toks = tokenize("2pi (1+2)").unwrap();
+        let mut p = Parser::new(toks);
+        let ast = p.parse_expr().unwrap();
+        
+        if let Expr::Binary(BinOp::Mul, _, _) = ast.expr {
+        } else {
+            panic!("Expected implicit multiplication, got {:?}", ast.expr);
+        }
+    }
+
+    #[test]
+    fn test_fn_define() {
+        let toks = tokenize("f(x, y) = x + y").unwrap();
+        let mut p = Parser::new(toks);
+        let ast = p.parse_expr().unwrap();
+        
+        if let Expr::FnDefine(name, params, _) = ast.expr {
+            assert_eq!(name, "f");
+            assert_eq!(params, vec!["x", "y"]);
+        } else {
+            panic!("Expected function definition");
+        }
+    }
+}

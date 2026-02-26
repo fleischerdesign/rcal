@@ -187,3 +187,55 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
     });
     Ok(tokens)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_basic_tokens() {
+        let input = "1 + 2 * (3 / 4)";
+        let tokens = tokenize(input).unwrap();
+        assert_eq!(tokens.len(), 10);
+        assert!(matches!(tokens[0].kind, TokenKind::Number(n) if n == 1.0));
+        assert!(matches!(tokens[1].kind, TokenKind::Plus));
+        assert!(matches!(tokens[2].kind, TokenKind::Number(n) if n == 2.0));
+        assert!(matches!(tokens[3].kind, TokenKind::Multiply));
+        assert!(matches!(tokens[4].kind, TokenKind::LParen));
+        assert!(matches!(tokens[9].kind, TokenKind::EOF));
+    }
+
+    #[test]
+    fn test_radix_numbers() {
+        let hex = "0xff";
+        let tokens = tokenize(hex).unwrap();
+        assert!(matches!(tokens[0].kind, TokenKind::Number(n) if n == 255.0));
+
+        let bin = "0b1010";
+        let tokens = tokenize(bin).unwrap();
+        assert!(matches!(tokens[0].kind, TokenKind::Number(n) if n == 10.0));
+    }
+
+    #[test]
+    fn test_scientific_notation() {
+        let input = "1.2e-3";
+        let tokens = tokenize(input).unwrap();
+        assert!(matches!(tokens[0].kind, TokenKind::Number(n) if (n - 0.0012).abs() < 1e-10));
+    }
+
+    #[test]
+    fn test_identifiers() {
+        let input = "var_name_123 sin pi";
+        let tokens = tokenize(input).unwrap();
+        assert!(matches!(tokens[0].kind, TokenKind::Identifier(ref s) if s == "var_name_123"));
+        assert!(matches!(tokens[1].kind, TokenKind::Identifier(ref s) if s == "sin"));
+        assert!(matches!(tokens[2].kind, TokenKind::Identifier(ref s) if s == "pi"));
+    }
+
+    #[test]
+    fn test_errors() {
+        assert!(tokenize("1.2.3").is_err());
+        assert!(tokenize("0xz").is_err());
+        assert!(tokenize("@").is_err());
+    }
+}

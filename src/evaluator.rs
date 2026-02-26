@@ -143,3 +143,53 @@ pub fn evaluate(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lexer::tokenize;
+    use crate::parser::Parser;
+
+    fn eval_str(input: &str, vars: &mut HashMap<String, Quantity>, funcs: &mut HashMap<String, UserFunction>) -> Result<Quantity, RcalError> {
+        let toks = tokenize(input).unwrap();
+        let mut p = Parser::new(toks);
+        let ast = p.parse_expr().unwrap();
+        evaluate(&ast, vars, funcs)
+    }
+
+    #[test]
+    fn test_eval_simple() {
+        let mut vars = HashMap::new();
+        let mut funcs = HashMap::new();
+        let res = eval_str("1 + 2 * 3", &mut vars, &mut funcs).unwrap();
+        assert_eq!(res.value, 7.0);
+    }
+
+    #[test]
+    fn test_eval_vars() {
+        let mut vars = HashMap::new();
+        let mut funcs = HashMap::new();
+        eval_str("a = 5", &mut vars, &mut funcs).unwrap();
+        let res = eval_str("a * 2", &mut vars, &mut funcs).unwrap();
+        assert_eq!(res.value, 10.0);
+    }
+
+    #[test]
+    fn test_eval_funcs() {
+        let mut vars = HashMap::new();
+        let mut funcs = HashMap::new();
+        eval_str("f(x) = x * x", &mut vars, &mut funcs).unwrap();
+        let res = eval_str("f(3) + 1", &mut vars, &mut funcs).unwrap();
+        assert_eq!(res.value, 10.0);
+    }
+
+    #[test]
+    fn test_units() {
+        let mut vars = HashMap::new();
+        let mut funcs = HashMap::new();
+        let res = eval_str("10m / 2s", &mut vars, &mut funcs).unwrap();
+        assert_eq!(res.value, 5.0);
+        assert_eq!(res.dims[0], 1); // m
+        assert_eq!(res.dims[2], -1); // s^-1
+    }
+}

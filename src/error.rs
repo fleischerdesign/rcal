@@ -1,5 +1,6 @@
 use std::fmt;
 
+#[derive(Debug)]
 pub enum RcalError {
     Lexer(String, usize),
     Parser(String, usize),
