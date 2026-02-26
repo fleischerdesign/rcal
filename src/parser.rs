@@ -29,6 +29,28 @@ impl Parser {
     }
 
     pub fn parse_expr(&mut self) -> Result<Box<Node>, RcalError> {
+        let node = self.parse_assignment()?;
+        if self.cur().kind == TokenKind::In {
+            let pos = self.cur().pos;
+            self.consume();
+            if let TokenKind::Identifier(unit) = &self.cur().kind {
+                let unit = unit.clone();
+                self.consume();
+                return Ok(Box::new(Node {
+                    expr: Expr::Convert(node, unit),
+                    pos,
+                }));
+            } else {
+                return Err(RcalError::Parser(
+                    "Expected unit after 'in'".to_string(),
+                    pos,
+                ));
+            }
+        }
+        Ok(node)
+    }
+
+    fn parse_assignment(&mut self) -> Result<Box<Node>, RcalError> {
         if let TokenKind::Identifier(name) = &self.cur().kind {
             if self.peek().kind == TokenKind::Assign {
                 let (name, pos) = (name.clone(), self.cur().pos);

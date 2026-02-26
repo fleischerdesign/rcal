@@ -1,4 +1,7 @@
-use crate::unit::Quantity;
+use crate::unit::{
+    D_A, D_CD, D_G, D_H, D_HZ, D_J, D_K, D_K_BOLTZ, D_KG, D_M, D_M3, D_MOL, D_MS, D_MS2, D_N, D_NA,
+    D_PA, D_RAD, D_S, D_W, Quantity,
+};
 
 pub enum Arity {
     Fixed(usize),
@@ -24,7 +27,7 @@ fn inv_trig(args: &[Quantity], f: fn(f64) -> f64) -> Result<Quantity, String> {
     }
     Ok(Quantity {
         value: f(args[0].value),
-        dims: [0, 0, 0, 0, 0, 0, 0, 1],
+        dims: D_RAD,
     })
 }
 
@@ -224,6 +227,44 @@ pub const BUILTINS: &[Builtin] = &[
         },
     },
     Builtin {
+        name: "floor",
+        arity: Arity::Fixed(1),
+        func: |a| {
+            Ok(Quantity {
+                value: a[0].value.floor(),
+                dims: a[0].dims,
+            })
+        },
+    },
+    Builtin {
+        name: "ceil",
+        arity: Arity::Fixed(1),
+        func: |a| {
+            Ok(Quantity {
+                value: a[0].value.ceil(),
+                dims: a[0].dims,
+            })
+        },
+    },
+    Builtin {
+        name: "exp",
+        arity: Arity::Fixed(1),
+        func: |a| scalar_op(a, f64::exp),
+    },
+    Builtin {
+        name: "clamp",
+        arity: Arity::Fixed(3),
+        func: |a| {
+            if a[0].dims != a[1].dims || a[0].dims != a[2].dims {
+                return Err("Dimension mismatch".into());
+            }
+            Ok(Quantity {
+                value: a[0].value.clamp(a[1].value, a[2].value),
+                dims: a[0].dims,
+            })
+        },
+    },
+    Builtin {
         name: "max",
         arity: Arity::Variadic,
         func: |a| aggregate(a, |v| v.iter().cloned().fold(f64::NEG_INFINITY, f64::max)),
@@ -260,6 +301,48 @@ pub const CONSTANTS: &[(&str, Quantity)] = &[
             dims: [0; 8],
         },
     ),
+    (
+        "c",
+        Quantity {
+            value: 299_792_458.0,
+            dims: D_MS,
+        },
+    ),
+    (
+        "G",
+        Quantity {
+            value: 6.674_30e-11,
+            dims: D_G,
+        },
+    ),
+    (
+        "planck",
+        Quantity {
+            value: 6.626_070_15e-34,
+            dims: D_H,
+        },
+    ),
+    (
+        "k_b",
+        Quantity {
+            value: 1.380_649e-23,
+            dims: D_K_BOLTZ,
+        },
+    ),
+    (
+        "Na",
+        Quantity {
+            value: 6.022_140_76e23,
+            dims: D_NA,
+        },
+    ),
+    (
+        "g0",
+        Quantity {
+            value: 9.806_65,
+            dims: D_MS2,
+        },
+    ),
 ];
 
 pub const UNITS: &[(&str, Quantity)] = &[
@@ -267,112 +350,238 @@ pub const UNITS: &[(&str, Quantity)] = &[
         "rad",
         Quantity {
             value: 1.0,
-            dims: [0, 0, 0, 0, 0, 0, 0, 1],
+            dims: D_RAD,
         },
     ),
     (
         "deg",
         Quantity {
             value: std::f64::consts::PI / 180.0,
-            dims: [0, 0, 0, 0, 0, 0, 0, 1],
+            dims: D_RAD,
         },
     ),
     (
         "m",
         Quantity {
             value: 1.0,
-            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+            dims: D_M,
         },
     ),
     (
         "cm",
         Quantity {
             value: 0.01,
-            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+            dims: D_M,
         },
     ),
     (
         "mm",
         Quantity {
             value: 0.001,
-            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+            dims: D_M,
+        },
+    ),
+    (
+        "um",
+        Quantity {
+            value: 1e-6,
+            dims: D_M,
+        },
+    ),
+    (
+        "nm",
+        Quantity {
+            value: 1e-9,
+            dims: D_M,
         },
     ),
     (
         "km",
         Quantity {
             value: 1000.0,
-            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+            dims: D_M,
         },
     ),
     (
         "kg",
         Quantity {
             value: 1.0,
-            dims: [0, 1, 0, 0, 0, 0, 0, 0],
+            dims: D_KG,
         },
     ),
     (
         "g",
         Quantity {
             value: 0.001,
-            dims: [0, 1, 0, 0, 0, 0, 0, 0],
+            dims: D_KG,
         },
     ),
     (
         "s",
         Quantity {
             value: 1.0,
-            dims: [0, 0, 1, 0, 0, 0, 0, 0],
+            dims: D_S,
+        },
+    ),
+    (
+        "ms",
+        Quantity {
+            value: 0.001,
+            dims: D_S,
+        },
+    ),
+    (
+        "us",
+        Quantity {
+            value: 1e-6,
+            dims: D_S,
+        },
+    ),
+    (
+        "ns",
+        Quantity {
+            value: 1e-9,
+            dims: D_S,
         },
     ),
     (
         "min",
         Quantity {
             value: 60.0,
-            dims: [0, 0, 1, 0, 0, 0, 0, 0],
+            dims: D_S,
         },
     ),
     (
         "h",
         Quantity {
             value: 3600.0,
-            dims: [0, 0, 1, 0, 0, 0, 0, 0],
+            dims: D_S,
+        },
+    ),
+    (
+        "Wh",
+        Quantity {
+            value: 3600.0,
+            dims: D_J,
+        },
+    ),
+    (
+        "kWh",
+        Quantity {
+            value: 3_600_000.0,
+            dims: D_J,
+        },
+    ),
+    (
+        "kmh",
+        Quantity {
+            value: 1000.0 / 3600.0,
+            dims: D_MS,
+        },
+    ),
+    (
+        "A",
+        Quantity {
+            value: 1.0,
+            dims: D_A,
+        },
+    ),
+    (
+        "K",
+        Quantity {
+            value: 1.0,
+            dims: D_K,
+        },
+    ),
+    (
+        "mol",
+        Quantity {
+            value: 1.0,
+            dims: D_MOL,
+        },
+    ),
+    (
+        "cd",
+        Quantity {
+            value: 1.0,
+            dims: D_CD,
+        },
+    ),
+    (
+        "l",
+        Quantity {
+            value: 0.001,
+            dims: D_M3,
+        },
+    ),
+    (
+        "bar",
+        Quantity {
+            value: 100_000.0,
+            dims: D_PA,
+        },
+    ),
+    (
+        "atm",
+        Quantity {
+            value: 101_325.0,
+            dims: D_PA,
+        },
+    ),
+    (
+        "inch",
+        Quantity {
+            value: 0.0254,
+            dims: D_M,
+        },
+    ),
+    (
+        "ft",
+        Quantity {
+            value: 0.3048,
+            dims: D_M,
+        },
+    ),
+    (
+        "eV",
+        Quantity {
+            value: 1.602_176_634e-19,
+            dims: D_J,
         },
     ),
     (
         "N",
         Quantity {
             value: 1.0,
-            dims: [1, 1, -2, 0, 0, 0, 0, 0],
+            dims: D_N,
         },
     ),
     (
         "J",
         Quantity {
             value: 1.0,
-            dims: [2, 1, -2, 0, 0, 0, 0, 0],
+            dims: D_J,
         },
     ),
     (
         "W",
         Quantity {
             value: 1.0,
-            dims: [2, 1, -3, 0, 0, 0, 0, 0],
+            dims: D_W,
         },
     ),
     (
         "Pa",
         Quantity {
             value: 1.0,
-            dims: [-1, 1, -2, 0, 0, 0, 0, 0],
+            dims: D_PA,
         },
     ),
     (
         "Hz",
         Quantity {
             value: 1.0,
-            dims: [0, 0, -1, 0, 0, 0, 0, 0],
+            dims: D_HZ,
         },
     ),
 ];
@@ -386,6 +595,7 @@ pub fn is_protected(name: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::unit::D_M2;
 
     #[test]
     fn test_trig_scalar() {
@@ -407,11 +617,11 @@ mod tests {
         let sqrt_f = BUILTINS.iter().find(|b| b.name == "sqrt").unwrap();
         let m2 = Quantity {
             value: 16.0,
-            dims: [2, 0, 0, 0, 0, 0, 0, 0],
+            dims: D_M2,
         };
         let res = (sqrt_f.func)(&[m2]).unwrap();
         assert_eq!(res.value, 4.0);
-        assert_eq!(res.dims[0], 1); // sqrt(m^2) = m
+        assert_eq!(res.dims, D_M);
     }
 
     #[test]
@@ -419,11 +629,11 @@ mod tests {
         let sum_f = BUILTINS.iter().find(|b| b.name == "sum").unwrap();
         let m = Quantity {
             value: 1.0,
-            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+            dims: D_M,
         };
         let kg = Quantity {
             value: 1.0,
-            dims: [0, 1, 0, 0, 0, 0, 0, 0],
+            dims: D_KG,
         };
 
         assert!((sum_f.func)(&[m, m]).is_ok());

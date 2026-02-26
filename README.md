@@ -75,9 +75,12 @@ Scripts support multiple lines and comments using `#`. Error reports will includ
 
 Units are case-sensitive. `rcal` performs full dimensional analysis on all calculations.
 
-- **Length**: `m`, `cm`, `mm`, `km`
+- **Length**: `m`, `cm`, `mm`, `km`, `inch`, `ft`
 - **Mass**: `kg`, `g`
 - **Time**: `s`, `min`, `h`
+- **Pressure**: `bar`, `atm`
+- **Energy**: `Wh`, `kWh`, `eV`
+- **Volume**: `l` (Liter)
 - **Angles**: `rad`, `deg`
 - **Derived Units**: `N` (Newton), `J` (Joule), `W` (Watt), `Pa` (Pascal), `Hz` (Hertz)
 
@@ -91,6 +94,7 @@ Units are case-sensitive. `rcal` performs full dimensional analysis on all calcu
 - `^` Exponentiation
 - `!` Factorial (integers only)
 - `=` Assignment / Function Definition
+- `in` Unit conversion (e.g., `100km/h in m/s`)
 - `,` Argument separator
 - `;` Expression separator
 
@@ -103,6 +107,10 @@ Units are case-sensitive. `rcal` performs full dimensional analysis on all calcu
 - `abs(x)`: Absolute value.
 - `ln(x)`: Natural logarithm.
 - `log(x)`: Logarithm base 10.
+- `floor(x)`, `ceil(x)`: Round down or up.
+- `round(val, places)`: Round to specified decimal places.
+- `exp(x)`: Exponential function (e^x).
+- `clamp(val, min, max)`: Restrict value to a range.
 
 #### Aggregates
 - `sum(a, b, ...)`: Sum of all arguments.
@@ -124,6 +132,12 @@ Units are case-sensitive. `rcal` performs full dimensional analysis on all calcu
 
 - `pi`: The ratio of a circle's circumference to its diameter.
 - `e`: Euler's number.
+- `c`: Speed of light in vacuum.
+- `G`: Newtonian constant of gravitation.
+- `planck`: Planck constant.
+- `k_b`: Boltzmann constant.
+- `Na`: Avogadro constant.
+- `g0`: Standard acceleration of gravity.
 - `deg`: Constant to convert degrees to radians (e.g., `sin(90 deg)`).
 
 ## Examples
@@ -136,6 +150,22 @@ Unit calculation and Dimensional Safety:
 = 10 m^2 kg s^-2
 > 5m + 10s
 Math Error: Dimension mismatch
+```
+
+Unit conversion:
+```text
+> 100km/h in m/s
+= 27.77777777777778 m s^-1
+> 1kWh in J
+= 3600000 J
+> 3600J in Wh
+= 1 Wh
+```
+
+Scientific calculations:
+```text
+> planck * c / 500nm in eV
+= 2.4845489103322144 eV
 ```
 
 Basic calculation:

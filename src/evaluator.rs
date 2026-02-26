@@ -141,6 +141,7 @@ pub fn evaluate(
             let v = evaluate(e, vars, funcs)?;
             Ok(if let UnOp::Neg = op { -v } else { v })
         }
+        Expr::Convert(e, _) => evaluate(e, vars, funcs),
     }
 }
 

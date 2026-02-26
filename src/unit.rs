@@ -101,6 +101,43 @@ impl Neg for Quantity {
     }
 }
 
+pub const D_M: [i8; 8] = [1, 0, 0, 0, 0, 0, 0, 0];
+pub const D_M2: [i8; 8] = [2, 0, 0, 0, 0, 0, 0, 0];
+pub const D_M3: [i8; 8] = [3, 0, 0, 0, 0, 0, 0, 0];
+pub const D_KG: [i8; 8] = [0, 1, 0, 0, 0, 0, 0, 0];
+pub const D_S: [i8; 8] = [0, 0, 1, 0, 0, 0, 0, 0];
+pub const D_A: [i8; 8] = [0, 0, 0, 1, 0, 0, 0, 0];
+pub const D_K: [i8; 8] = [0, 0, 0, 0, 1, 0, 0, 0];
+pub const D_MOL: [i8; 8] = [0, 0, 0, 0, 0, 1, 0, 0];
+pub const D_CD: [i8; 8] = [0, 0, 0, 0, 0, 0, 1, 0];
+pub const D_RAD: [i8; 8] = [0, 0, 0, 0, 0, 0, 0, 1];
+
+pub const D_HZ: [i8; 8] = [0, 0, -1, 0, 0, 0, 0, 0];
+pub const D_MS: [i8; 8] = [1, 0, -1, 0, 0, 0, 0, 0];
+pub const D_MS2: [i8; 8] = [1, 0, -2, 0, 0, 0, 0, 0];
+pub const D_N: [i8; 8] = [1, 1, -2, 0, 0, 0, 0, 0];
+pub const D_PA: [i8; 8] = [-1, 1, -2, 0, 0, 0, 0, 0];
+pub const D_J: [i8; 8] = [2, 1, -2, 0, 0, 0, 0, 0];
+pub const D_W: [i8; 8] = [2, 1, -3, 0, 0, 0, 0, 0];
+
+pub const D_G: [i8; 8] = [3, -1, -2, 0, 0, 0, 0, 0];
+pub const D_H: [i8; 8] = [2, 1, -1, 0, 0, 0, 0, 0];
+pub const D_K_BOLTZ: [i8; 8] = [2, 1, -2, 0, -1, 0, 0, 0];
+pub const D_NA: [i8; 8] = [0, 0, 0, 0, 0, -1, 0, 0];
+
+const SMART_UNITS: &[(&str, [i8; 8])] = &[
+    ("Hz", D_HZ),
+    ("N", D_N),
+    ("Pa", D_PA),
+    ("J", D_J),
+    ("W", D_W),
+    ("m s^-1", D_MS),
+    ("m s^-2", D_MS2),
+    ("m^2", D_M2),
+    ("m^3", D_M3),
+    ("rad", D_RAD),
+];
+
 impl std::fmt::Display for Quantity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let val_str = if self.value == 0.0 {
@@ -109,6 +146,17 @@ impl std::fmt::Display for Quantity {
             format!("{}", self.value)
         };
         write!(f, "{}", val_str)?;
+
+        if self.is_scalar() {
+            return Ok(());
+        }
+
+        for (name, dims) in SMART_UNITS {
+            if &self.dims == dims {
+                return write!(f, " {}", name);
+            }
+        }
+
         let units = ["m", "kg", "s", "A", "K", "mol", "cd", "rad"];
         for (i, &unit) in units.iter().enumerate() {
             if self.dims[i] != 0 {

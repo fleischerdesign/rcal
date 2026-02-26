@@ -16,6 +16,7 @@ pub enum TokenKind {
     Comma,
     LParen,
     RParen,
+    In,
     Eof,
 }
 
@@ -29,7 +30,8 @@ impl TokenKind {
             | TokenKind::Divide
             | TokenKind::Modulo
             | TokenKind::Power
-            | TokenKind::Assign => Some("\x1b[32m"),
+            | TokenKind::Assign
+            | TokenKind::In => Some("\x1b[32m"),
             TokenKind::Semicolon | TokenKind::Comma | TokenKind::LParen | TokenKind::RParen => {
                 Some("\x1b[90m")
             }
@@ -92,8 +94,13 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
                     }
                 }
                 let len = s.len();
+                let kind = if s == "in" {
+                    TokenKind::In
+                } else {
+                    TokenKind::Identifier(s)
+                };
                 tokens.push(Token {
-                    kind: TokenKind::Identifier(s),
+                    kind,
                     pos: start,
                     len,
                 });
