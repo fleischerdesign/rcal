@@ -5,6 +5,9 @@ rcal is a powerful, lightweight command-line calculator written in Rust. It supp
 ## Features
 
 - **Professional Unit System**: Full dimensional analysis using SI base units (Length, Mass, Time, etc.).
+- **User-defined functions**: Define your own functions like `f(x, y) = x^2 + y^2` and reuse them.
+- **Script Mode**: Execute complex calculations from `.rcal` files.
+- **Comment Support**: Use `#` for documentation in scripts and interactive mode.
 - **Dimensional Safety**: Prevents impossible calculations like `5m + 10s`.
 - **Case-Sensitivity**: Correct handling of physical units (e.g., `Pa`, `Hz`, `N`, `J`).
 - **Implicit Multiplication**: Natural syntax support like `10m / 2s` or `2pi`.
@@ -56,6 +59,16 @@ Pass the expression as a command-line argument:
 ```bash
 cargo run -- "10 + 5 * 2"
 ```
+
+### Script Execution
+
+Pass a file path to execute a script:
+
+```bash
+cargo run -- my_script.rcal
+```
+
+Scripts support multiple lines and comments using `#`. Error reports will include line numbers.
 
 ## Mathematical Reference
 
@@ -199,6 +212,14 @@ rcal provides precise feedback when an error occurs:
 > 5m + 10s
 5m + 10s
    ^-- Math Error: Dimension mismatch
+```
+
+When running scripts, it also includes line numbers:
+
+```text
+Error in line 7:
+result = f(x, y)
+            ^-- Math Error: Dimension mismatch
 ```
 
 ## License
