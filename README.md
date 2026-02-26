@@ -12,7 +12,6 @@ rcal is a powerful, lightweight command-line calculator written in Rust. It supp
 - **Case-Sensitivity**: Correct handling of physical units (e.g., `Pa`, `Hz`, `N`, `J`).
 - **Implicit Multiplication**: Natural syntax support like `10m / 2s` or `2pi`.
 - **Arithmetic operations**: addition, subtraction, multiplication, division, modulo, and exponentiation.
-- **User-defined functions**: define your own functions like `f(x, y) = x^2 + y^2` and reuse them.
 - **Advanced mathematics**: factorials and a variety of trigonometric and logarithmic functions.
 - **Statistics and aggregates**: calculate sum, average, minimum, and maximum of multiple values.
 - **Programmer tools**: bitwise operations (AND, OR, XOR, NOT, shifts) and number format conversion.
