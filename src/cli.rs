@@ -1,4 +1,5 @@
 use crate::ast::Expr;
+use crate::builtins::format_as;
 use crate::calculator::Calculator;
 use crate::completer::RcalHelper;
 use rustyline::error::ReadlineError;
@@ -144,6 +145,21 @@ impl Cli {
         }
 
         if let Expr::Convert(_, ref target_node) = expr {
+            let is_format = if let Expr::Variable(name) = &target_node.expr {
+                if let Some(formatted) = format_as(name, v.value) {
+                    println!("{}= {}{}", GREEN, formatted, RESET);
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+
+            if is_format {
+                return;
+            }
+
             let mut vars = self.calc.vars().clone();
             let mut funcs = self.calc.funcs().clone();
             match crate::evaluator::evaluate(target_node, &mut vars, &mut funcs) {
@@ -176,14 +192,6 @@ impl Cli {
                     );
                 }
                 Err(e) => e.report_at(input, line_num),
-            }
-        } else if let Expr::Function(n, _) = expr {
-            if n == "hex" && v.is_scalar() {
-                println!("{}= 0x{:x}{}", GREEN, v.value as u64, RESET);
-            } else if n == "bin" && v.is_scalar() {
-                println!("{}= 0b{:b}{}", GREEN, v.value as u64, RESET);
-            } else {
-                println!("{}= {}{}", GREEN, v, RESET);
             }
         } else {
             println!("{}= {}{}", GREEN, v, RESET);

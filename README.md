@@ -14,7 +14,7 @@ rcal is a powerful, lightweight command-line calculator written in Rust. It supp
 - **Arithmetic operations**: addition, subtraction, multiplication, division, modulo, and exponentiation.
 - **Advanced mathematics**: factorials and a variety of trigonometric and logarithmic functions.
 - **Statistics and aggregates**: calculate sum, average, minimum, and maximum of multiple values.
-- **Programmer tools**: bitwise operations (AND, OR, XOR, NOT, shifts) and number format conversion.
+- **Programmer tools**: bitwise operations (AND, OR, XOR, NOT, shifts) and number format conversion using the `in` operator.
 - **CLI UX**: syntax highlighting, tab-completion for functions/constants, and command history.
 - **Variables**: assign values to variables and reuse them in subsequent calculations.
 - **Protected Names**: core units (like `m`, `s`) and built-in functions are protected and cannot be overwritten.
@@ -126,8 +126,7 @@ Units are case-sensitive. `rcal` performs full dimensional analysis on all calcu
 - `not(a)`: Bitwise NOT.
 - `lshift(a, n)`: Left shift `a` by `n` bits.
 - `rshift(a, n)`: Right shift `a` by `n` bits.
-- `hex(x)`: Formats the integer result as hexadecimal.
-- `bin(x)`: Formats the integer result as binary.
+- `in hex`, `in bin`: Formats the result as hexadecimal or binary (e.g., `255 in hex`).
 
 ### Constants
 
@@ -148,7 +147,7 @@ Unit calculation and Dimensional Safety:
 > 100km / (1h)
 = 27.77777777777778 m s^-1
 > 5N * 2m
-= 10 m^2 kg s^-2
+= 10 J
 > 5m + 10s
 Math Error: Dimension mismatch
 ```
@@ -212,10 +211,10 @@ Using aggregates:
 
 Using bitwise operations and formats:
 ```text
-> 0xff + 0b1010
-= 265
-> hex(and(ans, 0xf))
-= 0x9
+> 0xff + 0b1010 in hex
+= 0x109
+> and(255, 0xf) in hex
+= 0xf
 ```
 
 Using degrees:

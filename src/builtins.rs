@@ -133,26 +133,6 @@ pub const BUILTINS: &[Builtin] = &[
         func: |a| scalar_op(a, |v| !(v as u64) as f64),
     },
     Builtin {
-        name: "hex",
-        arity: Arity::Fixed(1),
-        func: |a| {
-            if !a[0].is_scalar() || a[0].value < 0.0 || a[0].value.fract() != 0.0 {
-                return Err("Invalid for hex".into());
-            }
-            Ok(a[0])
-        },
-    },
-    Builtin {
-        name: "bin",
-        arity: Arity::Fixed(1),
-        func: |a| {
-            if !a[0].is_scalar() || a[0].value < 0.0 || a[0].value.fract() != 0.0 {
-                return Err("Invalid for bin".into());
-            }
-            Ok(a[0])
-        },
-    },
-    Builtin {
         name: "and",
         arity: Arity::Fixed(2),
         func: |a| {
@@ -349,6 +329,14 @@ pub fn is_protected(name: &str) -> bool {
     CONSTANTS.iter().any(|(n, _)| *n == name)
         || UNITS.iter().any(|(n, _)| *n == name)
         || BUILTINS.iter().any(|b| b.name == name)
+}
+
+pub fn format_as(name: &str, value: f64) -> Option<String> {
+    match name {
+        "hex" => Some(format!("0x{:x}", value as u64)),
+        "bin" => Some(format!("0b{:b}", value as u64)),
+        _ => None,
+    }
 }
 
 #[cfg(test)]
