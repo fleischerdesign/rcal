@@ -152,12 +152,19 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
                     }
                 }
                 while let Some(&(_, ch)) = chars.peek() {
-                    if ch.is_ascii_digit() || ch == '.' || ch == 'e' || ch == 'E' {
+                    if ch.is_ascii_digit() || ch == '.' {
                         s.push(ch);
                         chars.next();
-                        if (ch == 'e' || ch == 'E')
-                            && chars.peek().is_some_and(|&(_, n)| n == '-' || n == '+')
-                        {
+                    } else if (ch == 'e' || ch == 'E') && {
+                        let mut lookahead = chars.clone();
+                        lookahead.next();
+                        lookahead.peek().is_some_and(|&(_, next)| {
+                            next.is_ascii_digit() || next == '+' || next == '-'
+                        })
+                    } {
+                        s.push(ch);
+                        chars.next();
+                        if matches!(chars.peek(), Some(&(_, next)) if next == '-' || next == '+') {
                             s.push(chars.next().unwrap().1);
                         }
                     } else {

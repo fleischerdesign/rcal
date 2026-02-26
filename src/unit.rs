@@ -19,7 +19,7 @@ impl Quantity {
     }
 
     pub fn is_angle(&self) -> bool {
-        self.dims == ANGLE
+        self.dims == [0, 0, 0, 0, 0, 0, 0, 1]
     }
 
     pub fn pow(self, exp: f64) -> Result<Self, String> {
@@ -101,41 +101,301 @@ impl Neg for Quantity {
     }
 }
 
-pub const LENGTH: [i8; 8] = [1, 0, 0, 0, 0, 0, 0, 0];
-pub const AREA: [i8; 8] = [2, 0, 0, 0, 0, 0, 0, 0];
-pub const VOLUME: [i8; 8] = [3, 0, 0, 0, 0, 0, 0, 0];
-pub const MASS: [i8; 8] = [0, 1, 0, 0, 0, 0, 0, 0];
-pub const TIME: [i8; 8] = [0, 0, 1, 0, 0, 0, 0, 0];
-pub const CURRENT: [i8; 8] = [0, 0, 0, 1, 0, 0, 0, 0];
-pub const TEMPERATURE: [i8; 8] = [0, 0, 0, 0, 1, 0, 0, 0];
-pub const AMOUNT_OF_SUBSTANCE: [i8; 8] = [0, 0, 0, 0, 0, 1, 0, 0];
-pub const LUMINOUS_INTENSITY: [i8; 8] = [0, 0, 0, 0, 0, 0, 1, 0];
-pub const ANGLE: [i8; 8] = [0, 0, 0, 0, 0, 0, 0, 1];
-
-pub const FREQUENCY: [i8; 8] = [0, 0, -1, 0, 0, 0, 0, 0];
-pub const VELOCITY: [i8; 8] = [1, 0, -1, 0, 0, 0, 0, 0];
-pub const ACCELERATION: [i8; 8] = [1, 0, -2, 0, 0, 0, 0, 0];
-pub const FORCE: [i8; 8] = [1, 1, -2, 0, 0, 0, 0, 0];
-pub const PRESSURE: [i8; 8] = [-1, 1, -2, 0, 0, 0, 0, 0];
-pub const ENERGY: [i8; 8] = [2, 1, -2, 0, 0, 0, 0, 0];
-pub const POWER: [i8; 8] = [2, 1, -3, 0, 0, 0, 0, 0];
-
-pub const GRAVITATIONAL_CONSTANT: [i8; 8] = [3, -1, -2, 0, 0, 0, 0, 0];
-pub const ACTION: [i8; 8] = [2, 1, -1, 0, 0, 0, 0, 0];
-pub const BOLTZMANN_CONSTANT: [i8; 8] = [2, 1, -2, 0, -1, 0, 0, 0];
-pub const AVOGADRO_CONSTANT: [i8; 8] = [0, 0, 0, 0, 0, -1, 0, 0];
-
-const SMART_UNITS: &[(&str, [i8; 8])] = &[
-    ("Hz", FREQUENCY),
-    ("N", FORCE),
-    ("Pa", PRESSURE),
-    ("J", ENERGY),
-    ("W", POWER),
-    ("m s^-1", VELOCITY),
-    ("m s^-2", ACCELERATION),
-    ("m^2", AREA),
-    ("m^3", VOLUME),
-    ("rad", ANGLE),
+pub const UNITS: &[(&str, Quantity)] = &[
+    (
+        "rad",
+        Quantity {
+            value: 1.0,
+            dims: [0, 0, 0, 0, 0, 0, 0, 1],
+        },
+    ),
+    (
+        "deg",
+        Quantity {
+            value: std::f64::consts::PI / 180.0,
+            dims: [0, 0, 0, 0, 0, 0, 0, 1],
+        },
+    ),
+    (
+        "m",
+        Quantity {
+            value: 1.0,
+            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "cm",
+        Quantity {
+            value: 0.01,
+            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "mm",
+        Quantity {
+            value: 0.001,
+            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "um",
+        Quantity {
+            value: 1e-6,
+            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "nm",
+        Quantity {
+            value: 1e-9,
+            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "km",
+        Quantity {
+            value: 1000.0,
+            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "kg",
+        Quantity {
+            value: 1.0,
+            dims: [0, 1, 0, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "g",
+        Quantity {
+            value: 0.001,
+            dims: [0, 1, 0, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "s",
+        Quantity {
+            value: 1.0,
+            dims: [0, 0, 1, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "ms",
+        Quantity {
+            value: 0.001,
+            dims: [0, 0, 1, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "us",
+        Quantity {
+            value: 1e-6,
+            dims: [0, 0, 1, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "ns",
+        Quantity {
+            value: 1e-9,
+            dims: [0, 0, 1, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "min",
+        Quantity {
+            value: 60.0,
+            dims: [0, 0, 1, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "h",
+        Quantity {
+            value: 3600.0,
+            dims: [0, 0, 1, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "Wh",
+        Quantity {
+            value: 3600.0,
+            dims: [2, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "kWh",
+        Quantity {
+            value: 3_600_000.0,
+            dims: [2, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "kmh",
+        Quantity {
+            value: 1000.0 / 3600.0,
+            dims: [1, 0, -1, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "A",
+        Quantity {
+            value: 1.0,
+            dims: [0, 0, 0, 1, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "K",
+        Quantity {
+            value: 1.0,
+            dims: [0, 0, 0, 0, 1, 0, 0, 0],
+        },
+    ),
+    (
+        "mol",
+        Quantity {
+            value: 1.0,
+            dims: [0, 0, 0, 0, 0, 1, 0, 0],
+        },
+    ),
+    (
+        "cd",
+        Quantity {
+            value: 1.0,
+            dims: [0, 0, 0, 0, 0, 0, 1, 0],
+        },
+    ),
+    (
+        "l",
+        Quantity {
+            value: 0.001,
+            dims: [3, 0, 0, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "bar",
+        Quantity {
+            value: 100_000.0,
+            dims: [-1, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "atm",
+        Quantity {
+            value: 101_325.0,
+            dims: [-1, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "inch",
+        Quantity {
+            value: 0.0254,
+            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "ft",
+        Quantity {
+            value: 0.3048,
+            dims: [1, 0, 0, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "eV",
+        Quantity {
+            value: 1.602_176_634e-19,
+            dims: [2, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "kJ",
+        Quantity {
+            value: 1000.0,
+            dims: [2, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "MJ",
+        Quantity {
+            value: 1_000_000.0,
+            dims: [2, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "N",
+        Quantity {
+            value: 1.0,
+            dims: [1, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "J",
+        Quantity {
+            value: 1.0,
+            dims: [2, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "W",
+        Quantity {
+            value: 1.0,
+            dims: [2, 1, -3, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "mW",
+        Quantity {
+            value: 0.001,
+            dims: [2, 1, -3, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "kW",
+        Quantity {
+            value: 1000.0,
+            dims: [2, 1, -3, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "MW",
+        Quantity {
+            value: 1_000_000.0,
+            dims: [2, 1, -3, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "Pa",
+        Quantity {
+            value: 1.0,
+            dims: [-1, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "hPa",
+        Quantity {
+            value: 100.0,
+            dims: [-1, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "kPa",
+        Quantity {
+            value: 1000.0,
+            dims: [-1, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "MPa",
+        Quantity {
+            value: 1_000_000.0,
+            dims: [-1, 1, -2, 0, 0, 0, 0, 0],
+        },
+    ),
+    (
+        "Hz",
+        Quantity {
+            value: 1.0,
+            dims: [0, 0, -1, 0, 0, 0, 0, 0],
+        },
+    ),
 ];
 
 impl std::fmt::Display for Quantity {
@@ -151,8 +411,8 @@ impl std::fmt::Display for Quantity {
             return Ok(());
         }
 
-        for (name, dims) in SMART_UNITS {
-            if &self.dims == dims {
+        for (name, unit) in UNITS {
+            if unit.value == 1.0 && self.dims == unit.dims {
                 return write!(f, " {}", name);
             }
         }
@@ -178,26 +438,26 @@ mod tests {
     fn test_quantity_mul() {
         let q1 = Quantity {
             value: 2.0,
-            dims: LENGTH,
+            dims: [1, 0, 0, 0, 0, 0, 0, 0],
         };
         let q2 = Quantity {
             value: 3.0,
-            dims: LENGTH,
+            dims: [1, 0, 0, 0, 0, 0, 0, 0],
         };
         let res = q1 * q2;
         assert_eq!(res.value, 6.0);
-        assert_eq!(res.dims, AREA);
+        assert_eq!(res.dims, [2, 0, 0, 0, 0, 0, 0, 0]);
     }
 
     #[test]
     fn test_quantity_add_err() {
         let q1 = Quantity {
             value: 2.0,
-            dims: LENGTH,
+            dims: [1, 0, 0, 0, 0, 0, 0, 0],
         };
         let q2 = Quantity {
             value: 3.0,
-            dims: MASS,
+            dims: [0, 1, 0, 0, 0, 0, 0, 0],
         };
         assert!((q1 + q2).is_err());
     }

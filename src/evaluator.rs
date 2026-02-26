@@ -1,9 +1,9 @@
 use crate::{
     ast::{BinOp, Expr, Node, UnOp},
-    builtins::{Arity, BUILTINS, CONSTANTS, UNITS, is_protected},
+    builtins::{Arity, BUILTINS, CONSTANTS, is_protected},
     calculator::UserFunction,
     error::RcalError,
-    unit::Quantity,
+    unit::{Quantity, UNITS},
 };
 use std::collections::HashMap;
 
@@ -150,7 +150,6 @@ mod tests {
     use super::*;
     use crate::lexer::tokenize;
     use crate::parser::Parser;
-    use crate::unit::{LENGTH, VELOCITY};
 
     fn eval_str(
         input: &str,
@@ -195,7 +194,7 @@ mod tests {
         let mut funcs = HashMap::new();
         let res = eval_str("10m / 2s", &mut vars, &mut funcs).unwrap();
         assert_eq!(res.value, 5.0);
-        assert_eq!(res.dims, VELOCITY);
+        assert_eq!(res.dims, [1, 0, -1, 0, 0, 0, 0, 0]);
     }
 
     #[test]
@@ -205,7 +204,7 @@ mod tests {
         // Convert should not change the internal SI value
         let res = eval_str("1km in m", &mut vars, &mut funcs).unwrap();
         assert_eq!(res.value, 1000.0);
-        assert_eq!(res.dims, LENGTH);
+        assert_eq!(res.dims, [1, 0, 0, 0, 0, 0, 0, 0]);
     }
 
     #[test]
@@ -214,6 +213,6 @@ mod tests {
         let mut funcs = HashMap::new();
         let res = eval_str("c", &mut vars, &mut funcs).unwrap();
         assert_eq!(res.value, 299_792_458.0);
-        assert_eq!(res.dims, VELOCITY);
+        assert_eq!(res.dims, [1, 0, -1, 0, 0, 0, 0, 0]);
     }
 }
