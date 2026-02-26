@@ -108,7 +108,9 @@ impl Cli {
 
             match self.calc.eval(t) {
                 Ok((v, expr)) => {
-                    if !matches!(expr, Expr::Assign(_, _)) && !matches!(expr, Expr::FnDefine(_, _, _)) {
+                    if !matches!(expr, Expr::Assign(_, _))
+                        && !matches!(expr, Expr::FnDefine(_, _, _))
+                    {
                         if let Expr::Function(n, _) = expr {
                             if n == "hex" && v.is_scalar() {
                                 println!("{}= 0x{:x}{}", GREEN, v.value as u64, RESET);

@@ -227,7 +227,10 @@ impl Parser {
                         }
                     }
                     if self.cur().kind != TokenKind::RParen {
-                        return Err(RcalError::Parser("Expected ')'".to_string(), self.cur().pos));
+                        return Err(RcalError::Parser(
+                            "Expected ')'".to_string(),
+                            self.cur().pos,
+                        ));
                     }
                     self.consume();
                     Ok(Box::new(Node {

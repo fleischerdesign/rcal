@@ -1,8 +1,8 @@
 use crate::{
     ast::{BinOp, Expr, Node, UnOp},
+    builtins::{Arity, BUILTINS, CONSTANTS, UNITS, is_protected},
     calculator::UserFunction,
     error::RcalError,
-    builtins::{BUILTINS, CONSTANTS, UNITS, Arity, is_protected},
     unit::Quantity,
 };
 use std::collections::HashMap;
@@ -28,7 +28,10 @@ pub fn evaluate(
         }
         Expr::Assign(name, e) => {
             if is_protected(name) {
-                return Err(RcalError::Math(format!("'{}' is a protected name", name), pos));
+                return Err(RcalError::Math(
+                    format!("'{}' is a protected name", name),
+                    pos,
+                ));
             }
             let v = evaluate(e, vars, funcs)?;
             vars.insert(name.clone(), v);
@@ -36,7 +39,10 @@ pub fn evaluate(
         }
         Expr::FnDefine(name, params, body) => {
             if is_protected(name) {
-                return Err(RcalError::Math(format!("'{}' is a protected name", name), pos));
+                return Err(RcalError::Math(
+                    format!("'{}' is a protected name", name),
+                    pos,
+                ));
             }
             funcs.insert(
                 name.clone(),
@@ -71,7 +77,10 @@ pub fn evaluate(
             if let Some(b) = BUILTINS.iter().find(|b| b.name == name) {
                 match b.arity {
                     Arity::Fixed(n) if vs.len() != n => {
-                        return Err(RcalError::Math(format!("Expected {} args, got {}", n, vs.len()), pos));
+                        return Err(RcalError::Math(
+                            format!("Expected {} args, got {}", n, vs.len()),
+                            pos,
+                        ));
                     }
                     _ => {}
                 }

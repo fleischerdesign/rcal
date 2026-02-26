@@ -1,5 +1,5 @@
 use crate::builtins::{BUILTINS, CONSTANTS, UNITS};
-use crate::lexer::{tokenize, TokenKind};
+use crate::lexer::{TokenKind, tokenize};
 use rustyline::completion::{Completer, Pair};
 use rustyline::highlight::{CmdKind, Highlighter};
 use rustyline::hint::Hinter;
