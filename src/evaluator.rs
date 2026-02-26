@@ -150,6 +150,7 @@ mod tests {
     use super::*;
     use crate::lexer::tokenize;
     use crate::parser::Parser;
+    use crate::unit::{LENGTH, VELOCITY};
 
     fn eval_str(
         input: &str,
@@ -194,7 +195,25 @@ mod tests {
         let mut funcs = HashMap::new();
         let res = eval_str("10m / 2s", &mut vars, &mut funcs).unwrap();
         assert_eq!(res.value, 5.0);
-        assert_eq!(res.dims[0], 1); // m
-        assert_eq!(res.dims[2], -1); // s^-1
+        assert_eq!(res.dims, VELOCITY);
+    }
+
+    #[test]
+    fn test_conversion_op() {
+        let mut vars = HashMap::new();
+        let mut funcs = HashMap::new();
+        // Convert should not change the internal SI value
+        let res = eval_str("1km in m", &mut vars, &mut funcs).unwrap();
+        assert_eq!(res.value, 1000.0);
+        assert_eq!(res.dims, LENGTH);
+    }
+
+    #[test]
+    fn test_phys_constants() {
+        let mut vars = HashMap::new();
+        let mut funcs = HashMap::new();
+        let res = eval_str("c", &mut vars, &mut funcs).unwrap();
+        assert_eq!(res.value, 299_792_458.0);
+        assert_eq!(res.dims, VELOCITY);
     }
 }

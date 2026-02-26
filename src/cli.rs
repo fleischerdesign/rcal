@@ -123,57 +123,70 @@ impl Cli {
 
             match self.calc.eval(t) {
                 Ok((v, expr)) => {
-                    if !matches!(expr, Expr::Assign(_, _))
-                        && !matches!(expr, Expr::FnDefine(_, _, _))
-                    {
-                        if let Expr::Convert(_, ref target_node) = expr {
-                            // We evaluate the target expression to get its unit value and dimensions
-                            let mut vars = self.calc.vars().clone();
-                            let mut funcs = self.calc.funcs().clone();
-                            match crate::evaluator::evaluate(target_node, &mut vars, &mut funcs) {
-                                Ok(unit_val) => {
-                                    if v.dims != unit_val.dims {
-                                        crate::error::RcalError::Math(
-                                            format!("Dimension mismatch: result is {}, but target is {}", v, unit_val),
-                                            target_node.pos
-                                        ).report();
-                                        continue;
-                                    }
-                                    if unit_val.value == 0.0 {
-                                        crate::error::RcalError::Math(
-                                            "Cannot convert to zero-value unit".to_string(),
-                                            target_node.pos,
-                                        )
-                                        .report();
-                                        continue;
-                                    }
-                                    println!(
-                                        "{}= {} {}{}",
-                                        GREEN,
-                                        v.value / unit_val.value,
-                                        target_node,
-                                        RESET
-                                    );
-                                }
-                                Err(e) => e.report(),
-                            }
-                        } else if let Expr::Function(n, _) = expr {
-                            if n == "hex" && v.is_scalar() {
-                                println!("{}= 0x{:x}{}", GREEN, v.value as u64, RESET);
-                            } else if n == "bin" && v.is_scalar() {
-                                println!("{}= 0b{:b}{}", GREEN, v.value as u64, RESET);
-                            } else {
-                                println!("{}= {}{}", GREEN, v, RESET);
-                            }
-                        } else {
-                            println!("{}= {}{}", GREEN, v, RESET);
-                        }
-                    }
+                    self.handle_result(v, expr, t, line_num);
                 }
                 Err(e) => {
                     e.report_at(t, line_num);
                 }
             }
+        }
+    }
+
+    fn handle_result(
+        &self,
+        v: crate::unit::Quantity,
+        expr: crate::ast::Expr,
+        input: &str,
+        line_num: Option<usize>,
+    ) {
+        if matches!(expr, Expr::Assign(_, _)) || matches!(expr, Expr::FnDefine(_, _, _)) {
+            return;
+        }
+
+        if let Expr::Convert(_, ref target_node) = expr {
+            let mut vars = self.calc.vars().clone();
+            let mut funcs = self.calc.funcs().clone();
+            match crate::evaluator::evaluate(target_node, &mut vars, &mut funcs) {
+                Ok(unit_val) => {
+                    if v.dims != unit_val.dims {
+                        crate::error::RcalError::Math(
+                            format!(
+                                "Dimension mismatch: result is {}, but target is {}",
+                                v, unit_val
+                            ),
+                            target_node.pos,
+                        )
+                        .report_at(input, line_num);
+                        return;
+                    }
+                    if unit_val.value == 0.0 {
+                        crate::error::RcalError::Math(
+                            "Cannot convert to zero-value unit".to_string(),
+                            target_node.pos,
+                        )
+                        .report_at(input, line_num);
+                        return;
+                    }
+                    println!(
+                        "{}= {} {}{}",
+                        GREEN,
+                        v.value / unit_val.value,
+                        target_node,
+                        RESET
+                    );
+                }
+                Err(e) => e.report_at(input, line_num),
+            }
+        } else if let Expr::Function(n, _) = expr {
+            if n == "hex" && v.is_scalar() {
+                println!("{}= 0x{:x}{}", GREEN, v.value as u64, RESET);
+            } else if n == "bin" && v.is_scalar() {
+                println!("{}= 0b{:b}{}", GREEN, v.value as u64, RESET);
+            } else {
+                println!("{}= {}{}", GREEN, v, RESET);
+            }
+        } else {
+            println!("{}= {}{}", GREEN, v, RESET);
         }
     }
 

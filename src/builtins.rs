@@ -551,6 +551,20 @@ pub const UNITS: &[(&str, Quantity)] = &[
         },
     ),
     (
+        "kJ",
+        Quantity {
+            value: 1000.0,
+            dims: ENERGY,
+        },
+    ),
+    (
+        "MJ",
+        Quantity {
+            value: 1_000_000.0,
+            dims: ENERGY,
+        },
+    ),
+    (
         "N",
         Quantity {
             value: 1.0,
@@ -572,9 +586,51 @@ pub const UNITS: &[(&str, Quantity)] = &[
         },
     ),
     (
+        "mW",
+        Quantity {
+            value: 0.001,
+            dims: POWER,
+        },
+    ),
+    (
+        "kW",
+        Quantity {
+            value: 1000.0,
+            dims: POWER,
+        },
+    ),
+    (
+        "MW",
+        Quantity {
+            value: 1_000_000.0,
+            dims: POWER,
+        },
+    ),
+    (
         "Pa",
         Quantity {
             value: 1.0,
+            dims: PRESSURE,
+        },
+    ),
+    (
+        "hPa",
+        Quantity {
+            value: 100.0,
+            dims: PRESSURE,
+        },
+    ),
+    (
+        "kPa",
+        Quantity {
+            value: 1000.0,
+            dims: PRESSURE,
+        },
+    ),
+    (
+        "MPa",
+        Quantity {
+            value: 1_000_000.0,
             dims: PRESSURE,
         },
     ),

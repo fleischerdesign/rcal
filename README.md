@@ -17,6 +17,7 @@ rcal is a powerful, lightweight command-line calculator written in Rust. It supp
 - **Programmer tools**: bitwise operations (AND, OR, XOR, NOT, shifts) and number format conversion.
 - **CLI UX**: syntax highlighting, tab-completion for functions/constants, and command history.
 - **Variables**: assign values to variables and reuse them in subsequent calculations.
+- **Protected Names**: core units (like `m`, `s`) and built-in functions are protected and cannot be overwritten.
 - **History**: the result of the last successful calculation is automatically stored in the `ans` variable.
 - **Number formats**: support for decimal, scientific notation, hexadecimal (`0x`), and binary (`0b`).
 - **Degree support**: easy degree-to-radian conversion using the `deg` constant.
