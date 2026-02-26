@@ -15,12 +15,29 @@ impl RcalError {
         }
     }
 
-    pub fn report(&self, input: &str) {
+    pub fn report(&self) {
+        let red = "\x1b[31m";
+        let reset = "\x1b[0m";
+        println!("{}Error: {}{}", red, self, reset);
+    }
+
+    pub fn report_at(&self, input: &str, line_num: Option<usize>) {
         let red = "\x1b[31m";
         let reset = "\x1b[0m";
 
+        if let Some(n) = line_num {
+            println!("{}Error in line {}:{}", red, n, reset);
+        }
+
         if let Some(pos) = self.pos() {
-            println!("{}\n{}{}^-- {}{}", input, red, " ".repeat(pos), self, reset);
+            println!("{}", input);
+            println!(
+                "{}{}^-- {}{}",
+                red,
+                " ".repeat(pos),
+                self,
+                reset
+            );
         } else {
             println!("{}Error: {}{}", red, self, reset);
         }

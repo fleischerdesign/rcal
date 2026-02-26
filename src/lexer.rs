@@ -45,6 +45,11 @@ pub struct Token {
     pub len: usize,
 }
 
+pub fn is_comment_or_empty(input: &str) -> bool {
+    let trimmed = input.trim();
+    trimmed.is_empty() || trimmed.starts_with('#')
+}
+
 pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
     let mut tokens = Vec::new();
     let mut chars = input.char_indices().peekable();
@@ -52,6 +57,15 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
         let kind = match c {
             ' ' | '\n' | '\r' | '\t' => {
                 chars.next();
+                continue;
+            }
+            '#' => {
+                while let Some(&(_, ch)) = chars.peek() {
+                    if ch == '\n' {
+                        break;
+                    }
+                    chars.next();
+                }
                 continue;
             }
             '+' => TokenKind::Plus,

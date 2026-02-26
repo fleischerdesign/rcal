@@ -31,7 +31,21 @@ impl Cli {
         let args: Vec<_> = std::env::args().collect();
 
         if args.len() > 1 {
-            self.execute(&args[1..].join(" "));
+            let path = std::path::Path::new(&args[1]);
+            if path.exists() && path.is_file() {
+                match std::fs::read_to_string(path) {
+                    Ok(content) => {
+                        for (i, line) in content.lines().enumerate() {
+                            self.execute(line, Some(i + 1));
+                        }
+                    }
+                    Err(e) => {
+                        crate::error::RcalError::Cli(format!("Failed to read file: {}", e)).report();
+                    }
+                }
+            } else {
+                self.execute(&args[1..].join(" "), None);
+            }
             return;
         }
 
@@ -51,8 +65,7 @@ impl Cli {
             if let Err(e) = rl.load_history(path) {
                 if !matches!(e, ReadlineError::Io(ref io_err) if io_err.kind() == std::io::ErrorKind::NotFound)
                 {
-                    crate::error::RcalError::Cli(format!("Failed to load history: {}", e))
-                        .report("");
+                    crate::error::RcalError::Cli(format!("Failed to load history: {}", e)).report();
                 }
             }
         }
@@ -72,13 +85,13 @@ impl Cli {
                     }
 
                     let _ = rl.add_history_entry(trimmed);
-                    self.execute(trimmed);
+                    self.execute(trimmed, None);
                 }
                 Err(ReadlineError::Interrupted) | Err(ReadlineError::Eof) => {
                     break;
                 }
                 Err(err) => {
-                    crate::error::RcalError::Cli(format!("Readline error: {}", err)).report("");
+                    crate::error::RcalError::Cli(format!("Readline error: {}", err)).report();
                     break;
                 }
             }
@@ -89,10 +102,10 @@ impl Cli {
         }
     }
 
-    fn execute(&mut self, input: &str) {
+    fn execute(&mut self, input: &str, line_num: Option<usize>) {
         for part in input.split(';') {
             let t = part.trim();
-            if t.is_empty() {
+            if crate::lexer::is_comment_or_empty(t) {
                 continue;
             }
 
@@ -124,7 +137,9 @@ impl Cli {
                         }
                     }
                 }
-                Err(e) => e.report(t),
+                Err(e) => {
+                    e.report_at(t, line_num);
+                }
             }
         }
     }

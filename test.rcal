@@ -1,0 +1,7 @@
+# rcal test script
+x = 10m
+y = 20s
+f(a, b) = a + b
+
+# This should fail due to dimension mismatch
+result = f(x, y)
