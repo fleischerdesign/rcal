@@ -1,7 +1,8 @@
 use crate::ast::Expr;
 use crate::calculator::Calculator;
-use rustyline::DefaultEditor;
+use crate::completer::RcalHelper;
 use rustyline::error::ReadlineError;
+use rustyline::{Config, Editor};
 
 const RESET: &str = "\x1b[0m";
 const BOLD: &str = "\x1b[1m";
@@ -41,19 +42,13 @@ impl Cli {
             RESET
         );
 
-        let mut rl = match DefaultEditor::new() {
-            Ok(ed) => ed,
-            Err(e) => {
-                crate::error::RcalError::Cli(format!("Failed to initialize editor: {}", e))
-                    .report("");
-                return;
-            }
-        };
+        let config = Config::builder().build();
+        let mut rl = Editor::<RcalHelper, _>::with_config(config).expect("Failed to create editor");
+        rl.set_helper(Some(RcalHelper));
 
         let h_path = Self::history_path();
         if let Some(ref path) = h_path {
             if let Err(e) = rl.load_history(path) {
-                // Only report if it's not a "file not found" error
                 if !matches!(e, ReadlineError::Io(ref io_err) if io_err.kind() == std::io::ErrorKind::NotFound)
                 {
                     crate::error::RcalError::Cli(format!("Failed to load history: {}", e))
@@ -106,14 +101,14 @@ impl Cli {
                 continue;
             }
 
-            if t.eq_ignore_ascii_case("vars") {
-                self.print_vars();
+            if t.eq_ignore_ascii_case("list") {
+                self.print_list();
                 continue;
             }
 
             match self.calc.eval(t) {
                 Ok((v, expr)) => {
-                    if !matches!(expr, Expr::Assign(_, _)) {
+                    if !matches!(expr, Expr::Assign(_, _)) && !matches!(expr, Expr::FnDefine(_, _, _)) {
                         let norm = if v == 0.0 { 0.0 } else { v };
                         if let Expr::Function(n, _) = expr {
                             if n == "hex" {
@@ -159,17 +154,23 @@ impl Cli {
         println!("  pi, e, deg, ans");
 
         println!("\n{}Commands:{}", BOLD, RESET);
-        println!("  help, vars, exit, quit\n");
+        println!("  help, list, exit, quit\n");
     }
 
-    fn print_vars(&self) {
+    fn print_list(&self) {
         let vars = self.calc.vars();
-        if vars.is_empty() {
-            println!("No variables defined.");
+        let funcs = self.calc.funcs();
+
+        if vars.is_empty() && funcs.is_empty() {
+            println!("No variables or functions defined.");
             return;
         }
+
         for (k, v) in vars {
             println!("{}: {}", k, v);
+        }
+        for (k, f) in funcs {
+            println!("{}({}) = {}", k, f.params.join(", "), f.body);
         }
     }
 }

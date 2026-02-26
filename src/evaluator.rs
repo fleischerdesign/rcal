@@ -1,10 +1,16 @@
 use crate::{
     ast::{BinOp, Expr, Node, UnOp},
+    calculator::UserFunction,
     error::RcalError,
+    builtins::{BUILTINS, CONSTANTS, Arity},
 };
 use std::collections::HashMap;
 
-pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, RcalError> {
+pub fn evaluate(
+    node: &Node,
+    vars: &mut HashMap<String, f64>,
+    funcs: &mut HashMap<String, UserFunction>,
+) -> Result<f64, RcalError> {
     let pos = node.pos;
     let check = |res: f64| {
         if res.is_infinite() {
@@ -15,98 +21,64 @@ pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, Rca
     };
     match &node.expr {
         Expr::Number(n) => Ok(*n),
-        Expr::Variable(name) => match name.as_str() {
-            "pi" => Ok(std::f64::consts::PI),
-            "e" => Ok(std::f64::consts::E),
-            "deg" => Ok(std::f64::consts::PI / 180.0),
-            _ => vars
-                .get(name)
+        Expr::Variable(name) => {
+            if let Some((_, val)) = CONSTANTS.iter().find(|(n, _)| *n == name) {
+                return Ok(*val);
+            }
+            vars.get(name)
                 .copied()
-                .ok_or_else(|| RcalError::Math(format!("Unknown variable '{}'", name), pos)),
-        },
+                .ok_or_else(|| RcalError::Math(format!("Unknown variable '{}'", name), pos))
+        }
         Expr::Assign(name, e) => {
-            let v = evaluate(e, vars)?;
+            let v = evaluate(e, vars, funcs)?;
             vars.insert(name.clone(), v);
             Ok(v)
+        }
+        Expr::FnDefine(name, params, body) => {
+            funcs.insert(
+                name.clone(),
+                UserFunction {
+                    params: params.clone(),
+                    body: body.clone(),
+                },
+            );
+            Ok(0.0)
         }
         Expr::Function(name, args) => {
             let vs = args
                 .iter()
-                .map(|a| evaluate(a, vars))
+                .map(|a| evaluate(a, vars, funcs))
                 .collect::<Result<Vec<_>, _>>()?;
-            match name.as_str() {
-                "sin" | "cos" | "tan" | "asin" | "acos" | "atan" | "abs" | "sqrt" | "ln"
-                | "log" | "not" | "hex" | "bin"
-                    if vs.len() == 1 =>
-                {
-                    let v = vs[0];
-                    match name.as_str() {
-                        "sin" => Ok(v.sin()),
-                        "cos" => Ok(v.cos()),
-                        "tan" => Ok(v.tan()),
-                        "asin" => Ok(v.asin()),
-                        "acos" => Ok(v.acos()),
-                        "atan" => Ok(v.atan()),
-                        "abs" => Ok(v.abs()),
-                        "sqrt" => {
-                            if v < 0.0 {
-                                Err(RcalError::Math("Sqrt of negative".to_string(), pos))
-                            } else {
-                                Ok(v.sqrt())
-                            }
-                        }
-                        "ln" | "log" => {
-                            if v <= 0.0 {
-                                Err(RcalError::Math("Log of non-positive".to_string(), pos))
-                            } else {
-                                if name == "ln" {
-                                    Ok(v.ln())
-                                } else {
-                                    Ok(v.log10())
-                                }
-                            }
-                        }
-                        "not" => Ok(!(v as u64) as f64),
-                        "hex" | "bin" => {
-                            if v < 0.0 || v > u64::MAX as f64 || v.fract() != 0.0 {
-                                Err(RcalError::Math("Invalid for hex/bin".to_string(), pos))
-                            } else {
-                                Ok(v)
-                            }
-                        }
-                        _ => unreachable!(),
-                    }
+
+            if let Some(f) = funcs.get(name) {
+                if vs.len() != f.params.len() {
+                    return Err(RcalError::Math(
+                        format!("Expected {} args, got {}", f.params.len(), vs.len()),
+                        pos,
+                    ));
                 }
-                "and" | "or" | "xor" | "lshift" | "rshift" | "round" if vs.len() == 2 => {
-                    let (a, b) = (vs[0], vs[1]);
-                    match name.as_str() {
-                        "and" => Ok(((a as u64) & (b as u64)) as f64),
-                        "or" => Ok(((a as u64) | (b as u64)) as f64),
-                        "xor" => Ok(((a as u64) ^ (b as u64)) as f64),
-                        "lshift" => Ok(((a as u64) << (b as u64)) as f64),
-                        "rshift" => Ok(((a as u64) >> (b as u64)) as f64),
-                        "round" => {
-                            let m = 10.0f64.powf(b.round());
-                            Ok((a * m).round() / m)
-                        }
-                        _ => unreachable!(),
-                    }
+                let mut scope_vars = vars.clone();
+                for (p, v) in f.params.iter().zip(vs) {
+                    scope_vars.insert(p.clone(), v);
                 }
-                "max" | "min" | "sum" | "avg" if !vs.is_empty() => match name.as_str() {
-                    "max" => Ok(vs.iter().cloned().fold(f64::NEG_INFINITY, f64::max)),
-                    "min" => Ok(vs.iter().cloned().fold(f64::INFINITY, f64::min)),
-                    "sum" => Ok(vs.iter().sum()),
-                    "avg" => Ok(vs.iter().sum::<f64>() / vs.len() as f64),
-                    _ => unreachable!(),
-                },
-                _ => Err(RcalError::Math(
-                    format!("Unknown function or wrong args for '{}'", name),
-                    pos,
-                )),
+                let body = f.body.clone();
+                return evaluate(&body, &mut scope_vars, funcs);
             }
+
+            if let Some(b) = BUILTINS.iter().find(|b| b.name == name) {
+                match b.arity {
+                    Arity::Fixed(n) if vs.len() != n => {
+                        return Err(RcalError::Math(format!("Expected {} args, got {}", n, vs.len()), pos));
+                    }
+                    _ => {}
+                }
+                return (b.func)(&vs).map_err(|e| RcalError::Math(e, pos));
+            }
+
+            Err(RcalError::Math(format!("Unknown function '{}'", name), pos))
         }
         Expr::Binary(op, l, r) => {
-            let (lv, rv) = (evaluate(l, vars)?, evaluate(r, vars)?);
+            let (lv, rv) = (evaluate(l, vars, funcs)?, evaluate(r, vars, funcs)?);
             match op {
                 BinOp::Add => check(lv + rv),
                 BinOp::Sub => check(lv - rv),
@@ -138,7 +110,7 @@ pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, Rca
             }
         }
         Expr::Factorial(e) => {
-            let v = evaluate(e, vars)?;
+            let v = evaluate(e, vars, funcs)?;
             if v < 0.0 || v.fract() != 0.0 {
                 return Err(RcalError::Math("Needs non-neg int".to_string(), pos));
             }
@@ -152,7 +124,7 @@ pub fn evaluate(node: &Node, vars: &mut HashMap<String, f64>) -> Result<f64, Rca
             Ok(r)
         }
         Expr::Unary(op, e) => {
-            let v = evaluate(e, vars)?;
+            let v = evaluate(e, vars, funcs)?;
             Ok(if let UnOp::Neg = op { -v } else { v })
         }
     }

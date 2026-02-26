@@ -4,17 +4,18 @@ rcal is a powerful, lightweight command-line calculator written in Rust. It supp
 
 ## Features
 
-- Arithmetic operations: addition, subtraction, multiplication, division, modulo, and exponentiation.
-- Advanced mathematics: factorials and a variety of trigonometric and logarithmic functions.
-- Statistics and aggregates: calculate sum, average, minimum, and maximum of multiple values.
-- Programmer tools: bitwise operations (AND, OR, XOR, NOT, shifts) and number format conversion.
-- Variables: assign values to variables and reuse them in subsequent calculations.
-- History: the result of the last successful calculation is automatically stored in the 'ans' variable.
-- Number formats: support for decimal, scientific notation, hexadecimal (0x), and binary (0b).
-- Degree support: easy degree-to-radian conversion using the 'deg' constant.
-- Multi-expression support: evaluate multiple expressions in a single line using semicolons.
-- Precise error reporting: location-aware error messages for syntax and mathematical errors.
-- Overflow protection: comprehensive checks to prevent silent calculation errors.
+- **Arithmetic operations**: addition, subtraction, multiplication, division, modulo, and exponentiation.
+- **User-defined functions**: define your own functions like `f(x, y) = x^2 + y^2` and reuse them.
+- **Advanced mathematics**: factorials and a variety of trigonometric and logarithmic functions.
+- **Statistics and aggregates**: calculate sum, average, minimum, and maximum of multiple values.
+- **Programmer tools**: bitwise operations (AND, OR, XOR, NOT, shifts) and number format conversion.
+- **CLI UX**: syntax highlighting, tab-completion for functions/constants, and command history.
+- **Variables**: assign values to variables and reuse them in subsequent calculations.
+- **History**: the result of the last successful calculation is automatically stored in the `ans` variable.
+- **Number formats**: support for decimal, scientific notation, hexadecimal (`0x`), and binary (`0b`).
+- **Degree support**: easy degree-to-radian conversion using the `deg` constant.
+- **Multi-expression support**: evaluate multiple expressions in a single line using semicolons.
+- **Precise error reporting**: location-aware error messages for syntax and mathematical errors.
 
 ## Installation
 
@@ -38,6 +39,12 @@ Simply run the executable without arguments to start the interactive shell:
 cargo run
 ```
 
+The interactive shell supports:
+- **Tab-completion** for built-in functions and constants.
+- **Syntax highlighting** for improved readability.
+- **Arrow-key history** to browse and edit previous commands.
+- **`list` command** to see all defined variables and functions.
+
 ### Non-interactive Mode
 
 Pass the expression as a command-line argument:
@@ -57,7 +64,7 @@ cargo run -- "10 + 5 * 2"
 - `%` Modulo
 - `^` Exponentiation
 - `!` Factorial (integers only)
-- `=` Assignment
+- `=` Assignment / Function Definition
 - `,` Argument separator
 - `;` Expression separator
 
@@ -101,6 +108,16 @@ Basic calculation:
 = 11
 ```
 
+User-defined functions:
+```text
+> f(x) = x^2 + 10
+> f(5)
+= 35
+> hyp(a, b) = sqrt(a^2 + b^2)
+> hyp(3, 4)
+= 5
+```
+
 Using variables and 'ans':
 ```text
 > radius = 5
@@ -108,6 +125,14 @@ Using variables and 'ans':
 = 78.53981633974483
 > ans / 2
 = 39.269908169872415
+```
+
+Listing definitions:
+```text
+> x = 10; f(a) = a * 2; list
+x: 10
+ans: 0
+f(a) = (a * 2)
 ```
 
 Using aggregates:

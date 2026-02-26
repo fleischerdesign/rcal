@@ -1,8 +1,10 @@
 mod ast;
 mod calculator;
 mod cli;
+mod completer;
 mod error;
 mod evaluator;
+mod builtins;
 mod lexer;
 mod parser;
 

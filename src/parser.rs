@@ -39,6 +39,49 @@ impl Parser {
                     pos,
                 }));
             }
+
+            if self.peek().kind == TokenKind::LParen {
+                let mut lookahead = self.pos + 2;
+                let mut params = Vec::new();
+                let mut is_def = false;
+
+                while let Some(tok) = self.tokens.get(lookahead) {
+                    match &tok.kind {
+                        TokenKind::Identifier(p) => {
+                            params.push(p.to_lowercase());
+                            lookahead += 1;
+                        }
+                        TokenKind::Comma => lookahead += 1,
+                        TokenKind::RParen => {
+                            if let Some(next_tok) = self.tokens.get(lookahead + 1) {
+                                if next_tok.kind == TokenKind::Assign {
+                                    is_def = true;
+                                }
+                            }
+                            break;
+                        }
+                        _ => break,
+                    }
+                }
+
+                if is_def {
+                    let (name, pos) = (name.clone(), self.cur().pos);
+                    self.consume(); // name
+                    self.consume(); // (
+                    while let TokenKind::Identifier(_) = self.cur().kind {
+                        self.consume();
+                        if self.cur().kind == TokenKind::Comma {
+                            self.consume();
+                        }
+                    }
+                    self.consume(); // )
+                    self.consume(); // =
+                    return Ok(Box::new(Node {
+                        expr: Expr::FnDefine(name.to_lowercase(), params, self.parse_expr()?),
+                        pos,
+                    }));
+                }
+            }
         }
         self.parse_binary(Self::parse_term, &[TokenKind::Plus, TokenKind::Minus])
     }

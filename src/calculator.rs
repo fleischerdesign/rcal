@@ -1,18 +1,25 @@
-use crate::ast::Expr;
+use crate::ast::{Expr, Node};
 use crate::error::RcalError;
 use crate::evaluator::evaluate;
 use crate::lexer::{TokenKind, tokenize};
 use crate::parser::Parser;
 use std::collections::HashMap;
 
+pub struct UserFunction {
+    pub params: Vec<String>,
+    pub body: Box<Node>,
+}
+
 pub struct Calculator {
     vars: HashMap<String, f64>,
+    funcs: HashMap<String, UserFunction>,
 }
 
 impl Calculator {
     pub fn new() -> Self {
         Self {
             vars: HashMap::new(),
+            funcs: HashMap::new(),
         }
     }
 
@@ -28,12 +35,16 @@ impl Calculator {
             ));
         }
 
-        let v = evaluate(&ast, &mut self.vars)?;
+        let v = evaluate(&ast, &mut self.vars, &mut self.funcs)?;
         self.vars.insert("ans".to_string(), v);
         Ok((v, ast.expr))
     }
 
     pub fn vars(&self) -> &HashMap<String, f64> {
         &self.vars
+    }
+
+    pub fn funcs(&self) -> &HashMap<String, UserFunction> {
+        &self.funcs
     }
 }

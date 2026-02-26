@@ -19,10 +19,30 @@ pub enum TokenKind {
     EOF,
 }
 
+impl TokenKind {
+    pub fn color(&self) -> Option<&'static str> {
+        match self {
+            TokenKind::Number(_) => Some("\x1b[35m"),
+            TokenKind::Plus
+            | TokenKind::Minus
+            | TokenKind::Multiply
+            | TokenKind::Divide
+            | TokenKind::Modulo
+            | TokenKind::Power
+            | TokenKind::Assign => Some("\x1b[32m"),
+            TokenKind::Semicolon | TokenKind::Comma | TokenKind::LParen | TokenKind::RParen => {
+                Some("\x1b[90m")
+            }
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
     pub pos: usize,
+    pub len: usize,
 }
 
 pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
@@ -57,9 +77,11 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
                         break;
                     }
                 }
+                let len = s.len();
                 tokens.push(Token {
                     kind: TokenKind::Identifier(s),
                     pos: start,
+                    len,
                 });
                 continue;
             }
@@ -89,6 +111,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
                                 tokens.push(Token {
                                     kind: TokenKind::Number(n as f64),
                                     pos: start,
+                                    len: i - start + vs.len() + 2,
                                 });
                                 continue;
                             }
@@ -102,6 +125,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
                         tokens.push(Token {
                             kind: TokenKind::Number(0.0),
                             pos: start,
+                            len: 1,
                         });
                         continue;
                     }
@@ -119,6 +143,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
                         break;
                     }
                 }
+                let len = s.len();
                 let n = s.parse::<f64>().map_err(|_| {
                     RcalError::Lexer(format!("LexerError: Invalid number '{}'", s), start)
                 })?;
@@ -128,17 +153,23 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
                 tokens.push(Token {
                     kind: TokenKind::Number(n),
                     pos: start,
+                    len,
                 });
                 continue;
             }
             _ => return Err(RcalError::Lexer(format!("Unexpected character '{}'", c), i)),
         };
-        tokens.push(Token { kind, pos: i });
+        tokens.push(Token {
+            kind,
+            pos: i,
+            len: 1,
+        });
         chars.next();
     }
     tokens.push(Token {
         kind: TokenKind::EOF,
         pos: input.len(),
+        len: 0,
     });
     Ok(tokens)
 }
