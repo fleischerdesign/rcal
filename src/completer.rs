@@ -1,3 +1,5 @@
+//! Interactive shell helper for completion and syntax highlighting.
+
 use crate::builtins::{BUILTINS, CONSTANTS};
 use crate::lexer::{TokenKind, tokenize};
 use crate::unit::UNITS;
@@ -8,6 +10,7 @@ use rustyline::validate::Validator;
 use rustyline::{Context, Helper};
 use std::borrow::Cow;
 
+/// Helper for `rustyline` providing completion and highlighting.
 pub struct RcalHelper;
 
 impl Completer for RcalHelper {
@@ -41,7 +44,8 @@ impl Completer for RcalHelper {
                 });
             }
         }
-        for (name, _) in UNITS {
+        for unit in UNITS {
+            let name = unit.name;
             if name.starts_with(word) {
                 candidates.push(Pair {
                     display: name.to_string(),
@@ -91,7 +95,7 @@ impl Highlighter for RcalHelper {
                         Some("\x1b[34m")
                     } else if CONSTANTS.iter().any(|(n, _)| n == name) {
                         Some("\x1b[33m")
-                    } else if UNITS.iter().any(|(n, _)| n == name) {
+                    } else if UNITS.iter().any(|u| u.name == name) {
                         Some("\x1b[32m")
                     } else {
                         Some("\x1b[36m")

@@ -1,38 +1,52 @@
+//! Parsing and AST construction.
+
 use crate::ast::{BinOp, Expr, Node, UnOp};
-use crate::error::RcalError;
+use crate::error::{ParserError, Error};
 use crate::lexer::{Token, TokenKind};
 
+/// Recursive descent parser for the rcal language.
 pub struct Parser {
     tokens: Vec<Token>,
     pos: usize,
 }
 
 impl Parser {
+    /// Creates a new parser from a sequence of tokens.
     pub fn new(tokens: Vec<Token>) -> Self {
         Self { tokens, pos: 0 }
     }
 
+    /// Returns the current token without consuming it.
     pub fn cur(&self) -> &Token {
         self.tokens
             .get(self.pos)
             .unwrap_or(&self.tokens[self.tokens.len() - 1])
     }
 
+    /// Returns the next token without consuming it.
     fn peek(&self) -> &Token {
         self.tokens
             .get(self.pos + 1)
             .unwrap_or(&self.tokens[self.tokens.len() - 1])
     }
 
+    /// Consumes the current token and advances the position.
     fn consume(&mut self) {
         self.pos += 1;
     }
 
-    pub fn parse_expr(&mut self) -> Result<Box<Node>, RcalError> {
+    /// Entry point for parsing an expression.
+    pub fn parse_expr(&mut self) -> Result<Box<Node>, Error> {
+        if self.cur().kind == TokenKind::Eof {
+            return Err(Error::Parser(ParserError::EmptyExpression, self.cur().pos));
+        }
         let node = self.parse_assignment()?;
         if self.cur().kind == TokenKind::In {
             let pos = self.cur().pos;
             self.consume();
+            if self.cur().kind == TokenKind::Eof {
+                return Err(Error::Parser(ParserError::UnexpectedEof, pos));
+            }
             let target = self.parse_assignment()?;
             return Ok(Box::new(Node {
                 expr: Expr::Convert(node, target),
@@ -42,7 +56,8 @@ impl Parser {
         Ok(node)
     }
 
-    fn parse_assignment(&mut self) -> Result<Box<Node>, RcalError> {
+    /// Parses assignments and function definitions.
+    fn parse_assignment(&mut self) -> Result<Box<Node>, Error> {
         if let TokenKind::Identifier(name) = &self.cur().kind {
             if self.peek().kind == TokenKind::Assign {
                 let (name, pos) = (name.clone(), self.cur().pos);
@@ -98,13 +113,16 @@ impl Parser {
                     }));
                 }
             }
+        } else if self.peek().kind == TokenKind::Assign {
+            return Err(Error::Parser(ParserError::InvalidAssignment, self.cur().pos));
         }
         self.parse_binary(Self::parse_term, &[TokenKind::Plus, TokenKind::Minus])
     }
 
-    fn parse_binary<F>(&mut self, mut next: F, kinds: &[TokenKind]) -> Result<Box<Node>, RcalError>
+    /// Helper for parsing left-associative binary operators.
+    fn parse_binary<F>(&mut self, mut next: F, kinds: &[TokenKind]) -> Result<Box<Node>, Error>
     where
-        F: FnMut(&mut Self) -> Result<Box<Node>, RcalError>,
+        F: FnMut(&mut Self) -> Result<Box<Node>, Error>,
     {
         let mut left = next(self)?;
         while kinds.contains(&self.cur().kind) {
@@ -128,7 +146,8 @@ impl Parser {
         Ok(left)
     }
 
-    fn parse_term(&mut self) -> Result<Box<Node>, RcalError> {
+    /// Parses terms (multiplication, division, modulo).
+    fn parse_term(&mut self) -> Result<Box<Node>, Error> {
         let mut left = self.parse_implicit()?;
         loop {
             let (kind, pos) = (self.cur().kind.clone(), self.cur().pos);
@@ -152,7 +171,8 @@ impl Parser {
         Ok(left)
     }
 
-    fn parse_implicit(&mut self) -> Result<Box<Node>, RcalError> {
+    /// Parses implicit multiplication (e.g. "2pi").
+    fn parse_implicit(&mut self) -> Result<Box<Node>, Error> {
         let mut left = self.parse_power()?;
         loop {
             let pos = self.cur().pos;
@@ -170,7 +190,8 @@ impl Parser {
         Ok(left)
     }
 
-    fn parse_power(&mut self) -> Result<Box<Node>, RcalError> {
+    /// Parses exponentiation (right-associative).
+    fn parse_power(&mut self) -> Result<Box<Node>, Error> {
         let left = self.parse_postfix()?;
         if self.cur().kind == TokenKind::Power {
             let pos = self.cur().pos;
@@ -184,7 +205,8 @@ impl Parser {
         }
     }
 
-    fn parse_postfix(&mut self) -> Result<Box<Node>, RcalError> {
+    /// Parses postfix operators (factorial).
+    fn parse_postfix(&mut self) -> Result<Box<Node>, Error> {
         let mut left = self.parse_unary()?;
         while self.cur().kind == TokenKind::Factorial {
             let pos = self.cur().pos;
@@ -197,7 +219,8 @@ impl Parser {
         Ok(left)
     }
 
-    fn parse_unary(&mut self) -> Result<Box<Node>, RcalError> {
+    /// Parses unary prefix operators (positive, negative).
+    fn parse_unary(&mut self) -> Result<Box<Node>, Error> {
         let (kind, pos) = (self.cur().kind.clone(), self.cur().pos);
         match kind {
             TokenKind::Plus | TokenKind::Minus => {
@@ -216,7 +239,8 @@ impl Parser {
         }
     }
 
-    fn parse_primary(&mut self) -> Result<Box<Node>, RcalError> {
+    /// Parses primary expressions (numbers, variables, function calls, parentheses).
+    fn parse_primary(&mut self) -> Result<Box<Node>, Error> {
         let (kind, pos) = (self.cur().kind.clone(), self.cur().pos);
         match kind {
             TokenKind::Number(n) => {
@@ -243,8 +267,8 @@ impl Parser {
                         }
                     }
                     if self.cur().kind != TokenKind::RParen {
-                        return Err(RcalError::Parser(
-                            "Expected ')'".to_string(),
+                        return Err(Error::Parser(
+                            ParserError::ExpectedToken("')'".to_string()),
                             self.cur().pos,
                         ));
                     }
@@ -264,16 +288,20 @@ impl Parser {
                 self.consume();
                 let node = self.parse_expr()?;
                 if self.cur().kind != TokenKind::RParen {
-                    return Err(RcalError::Parser(
-                        format!("Expected ')', found {:?}", self.cur().kind),
+                    return Err(Error::Parser(
+                        ParserError::ExpectedToken("')'".to_string()),
                         self.cur().pos,
                     ));
                 }
                 self.consume();
                 Ok(node)
             }
-            _ => Err(RcalError::Parser(
-                format!("Unexpected token {:?}", kind),
+            TokenKind::Eof => Err(Error::Parser(ParserError::UnexpectedEof, pos)),
+            _ => Err(Error::Parser(
+                ParserError::UnexpectedToken {
+                    expected: "primary expression".to_string(),
+                    actual: format!("{:?}", kind),
+                },
                 pos,
             )),
         }

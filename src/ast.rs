@@ -1,5 +1,8 @@
+//! Abstract Syntax Tree definitions.
+
 use std::fmt;
 
+/// A node in the AST, containing an expression and its source position.
 #[derive(Debug, Clone)]
 pub struct Node {
     pub expr: Expr,
@@ -12,16 +15,26 @@ impl fmt::Display for Node {
     }
 }
 
+/// Types of expressions in the rcal language.
 #[derive(Debug, Clone)]
 pub enum Expr {
+    /// A numeric literal.
     Number(f64),
+    /// A variable lookup.
     Variable(String),
+    /// A variable assignment.
     Assign(String, Box<Node>),
+    /// A function definition.
     FnDefine(String, Vec<String>, Box<Node>),
+    /// A function call.
     Function(String, Vec<Node>),
+    /// A binary operation.
     Binary(BinOp, Box<Node>, Box<Node>),
+    /// A factorial operation.
     Factorial(Box<Node>),
+    /// A unary operation.
     Unary(UnOp, Box<Node>),
+    /// A unit conversion operation.
     Convert(Box<Node>, Box<Node>),
 }
 
@@ -46,6 +59,7 @@ impl fmt::Display for Expr {
     }
 }
 
+/// Binary operators.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BinOp {
     Add,
@@ -70,6 +84,7 @@ impl fmt::Display for BinOp {
     }
 }
 
+/// Unary operators.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnOp {
     Neg,

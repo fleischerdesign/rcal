@@ -1,3 +1,5 @@
+//! Command-line interface and interactive shell.
+
 use crate::ast::Expr;
 use crate::builtins::format_as;
 use crate::calculator::Calculator;
@@ -9,17 +11,20 @@ const RESET: &str = "\x1b[0m";
 const BOLD: &str = "\x1b[1m";
 const GREEN: &str = "\x1b[32m";
 
+/// The rcal command-line interface.
 pub struct Cli {
     calc: Calculator,
 }
 
 impl Cli {
+    /// Creates a new CLI instance.
     pub fn new() -> Self {
         Self {
             calc: Calculator::new(),
         }
     }
 
+    /// Returns the path to the history file.
     fn history_path() -> Option<std::path::PathBuf> {
         #[allow(deprecated)]
         std::env::home_dir().map(|mut p| {
@@ -28,6 +33,7 @@ impl Cli {
         })
     }
 
+    /// Runs the CLI in interactive or batch mode.
     pub fn run(&mut self) {
         let args: Vec<_> = std::env::args().collect();
 
@@ -41,7 +47,7 @@ impl Cli {
                         }
                     }
                     Err(e) => {
-                        crate::error::RcalError::Cli(format!("Failed to read file: {}", e))
+                        crate::error::Error::Cli(format!("Failed to read file: {}", e))
                             .report();
                     }
                 }
@@ -65,9 +71,9 @@ impl Cli {
         let h_path = Self::history_path();
         if let Some(ref path) = h_path {
             match rl.load_history(path) {
-                Err(e) if !matches!(e, ReadlineError::Io(ref io_err) if io_err.kind() == std::io::ErrorKind::NotFound) =>
-                {
-                    crate::error::RcalError::Cli(format!("Failed to load history: {}", e)).report();
+                Err(ReadlineError::Io(ref io_err)) if io_err.kind() == std::io::ErrorKind::NotFound => {}
+                Err(e) => {
+                    crate::error::Error::Cli(format!("Failed to load history: {}", e)).report();
                 }
                 _ => {}
             }
@@ -94,7 +100,7 @@ impl Cli {
                     break;
                 }
                 Err(err) => {
-                    crate::error::RcalError::Cli(format!("Readline error: {}", err)).report();
+                    crate::error::Error::Cli(format!("Readline error: {}", err)).report();
                     break;
                 }
             }
@@ -105,6 +111,7 @@ impl Cli {
         }
     }
 
+    /// Executes a single line of input (can contain multiple semicolon-separated statements).
     fn execute(&mut self, input: &str, line_num: Option<usize>) {
         for part in input.split(';') {
             let t = part.trim();
@@ -124,7 +131,7 @@ impl Cli {
 
             match self.calc.eval(t) {
                 Ok((v, expr)) => {
-                    self.handle_result(v, expr, t, line_num);
+                    self.handle_result(v, expr);
                 }
                 Err(e) => {
                     e.report_at(t, line_num);
@@ -133,71 +140,30 @@ impl Cli {
         }
     }
 
+    /// Handles the result of an evaluation, including special formatting for `Convert`.
     fn handle_result(
         &self,
         v: crate::unit::Quantity,
         expr: crate::ast::Expr,
-        input: &str,
-        line_num: Option<usize>,
     ) {
         if matches!(expr, Expr::Assign(_, _)) || matches!(expr, Expr::FnDefine(_, _, _)) {
             return;
         }
 
         if let Expr::Convert(_, ref target_node) = expr {
-            let is_format = if let Expr::Variable(name) = &target_node.expr {
-                if let Some(formatted) = format_as(name, v.value) {
-                    println!("{}= {}{}", GREEN, formatted, RESET);
-                    true
-                } else {
-                    false
-                }
-            } else {
-                false
-            };
-
-            if is_format {
+            if let Expr::Variable(name) = &target_node.expr
+                && let Some(formatted) = format_as(name, v.value)
+            {
+                println!("{}= {}{}", GREEN, formatted, RESET);
                 return;
             }
-
-            let mut vars = self.calc.vars().clone();
-            let mut funcs = self.calc.funcs().clone();
-            match crate::evaluator::evaluate(target_node, &mut vars, &mut funcs) {
-                Ok(unit_val) => {
-                    if v.dims != unit_val.dims {
-                        crate::error::RcalError::Math(
-                            format!(
-                                "Dimension mismatch: result is {}, but target is {}",
-                                v, unit_val
-                            ),
-                            target_node.pos,
-                        )
-                        .report_at(input, line_num);
-                        return;
-                    }
-                    if unit_val.value == 0.0 {
-                        crate::error::RcalError::Math(
-                            "Cannot convert to zero-value unit".to_string(),
-                            target_node.pos,
-                        )
-                        .report_at(input, line_num);
-                        return;
-                    }
-                    println!(
-                        "{}= {} {}{}",
-                        GREEN,
-                        v.value / unit_val.value,
-                        target_node,
-                        RESET
-                    );
-                }
-                Err(e) => e.report_at(input, line_num),
-            }
+            println!("{}= {} {}{}", GREEN, v.value, target_node, RESET);
         } else {
             println!("{}= {}{}", GREEN, v, RESET);
         }
     }
 
+    /// Prints the help message.
     fn print_help(&self) {
         println!("{}rcal v{}{}", BOLD, env!("CARGO_PKG_VERSION"), RESET);
         println!("\n{}Available Operations:{}", BOLD, RESET);
@@ -228,9 +194,10 @@ impl Cli {
         println!("  help, list, exit, quit\n");
     }
 
+    /// Prints all user-defined variables and functions.
     fn print_list(&self) {
-        let vars = self.calc.vars();
-        let funcs = self.calc.funcs();
+        let vars = self.calc.scope.vars();
+        let funcs = self.calc.scope.funcs();
 
         if vars.is_empty() && funcs.is_empty() {
             println!("No variables or functions defined.");
@@ -240,14 +207,23 @@ impl Cli {
         let mut v_keys: Vec<_> = vars.keys().collect();
         v_keys.sort();
         for k in v_keys {
-            println!("{}: {}", k, vars.get(k).unwrap());
+            if let Some(v) = vars.get(k) {
+                println!("{}: {}", k, v);
+            }
         }
 
         let mut f_keys: Vec<_> = funcs.keys().collect();
         f_keys.sort();
         for k in f_keys {
-            let f = funcs.get(k).unwrap();
-            println!("{}({}) = {}", k, f.params.join(", "), f.body);
+            if let Some(f) = funcs.get(k) {
+                println!("{}({}) = {}", k, f.params.join(", "), f.body);
+            }
         }
+    }
+}
+
+impl Default for Cli {
+    fn default() -> Self {
+        Self::new()
     }
 }

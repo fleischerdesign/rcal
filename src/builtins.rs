@@ -1,13 +1,19 @@
+//! Built-in functions, constants, and formatting logic.
+
 use crate::unit::{
     ACCELERATION, ACTION, ANGLE, AVOGADRO_CONSTANT, BOLTZMANN_CONSTANT, GRAVITATIONAL_CONSTANT,
-    Quantity, UNITS, VELOCITY,
+    Quantity, UNITS, VELOCITY, Dimensions,
 };
 
+/// Arity of a function (number of expected arguments).
 pub enum Arity {
+    /// Fixed number of arguments.
     Fixed(usize),
+    /// Variable number of arguments.
     Variadic,
 }
 
+/// Definition of a built-in function.
 pub struct Builtin {
     pub name: &'static str,
     pub arity: Arity,
@@ -56,282 +62,164 @@ fn aggregate(args: &[Quantity], f: fn(&[f64]) -> f64) -> Result<Quantity, String
     })
 }
 
-pub const BUILTINS: &[Builtin] = &[
-    Builtin {
-        name: "sin",
-        arity: Arity::Fixed(1),
-        func: |a| trig(a, f64::sin),
-    },
-    Builtin {
-        name: "cos",
-        arity: Arity::Fixed(1),
-        func: |a| trig(a, f64::cos),
-    },
-    Builtin {
-        name: "tan",
-        arity: Arity::Fixed(1),
-        func: |a| trig(a, f64::tan),
-    },
-    Builtin {
-        name: "asin",
-        arity: Arity::Fixed(1),
-        func: |a| inv_trig(a, f64::asin),
-    },
-    Builtin {
-        name: "acos",
-        arity: Arity::Fixed(1),
-        func: |a| inv_trig(a, f64::acos),
-    },
-    Builtin {
-        name: "atan",
-        arity: Arity::Fixed(1),
-        func: |a| inv_trig(a, f64::atan),
-    },
-    Builtin {
-        name: "abs",
-        arity: Arity::Fixed(1),
-        func: |a| {
-            Ok(Quantity {
-                value: a[0].value.abs(),
-                dims: a[0].dims,
-            })
-        },
-    },
-    Builtin {
-        name: "sqrt",
-        arity: Arity::Fixed(1),
-        func: |args| {
-            if args[0].value < 0.0 {
-                return Err("Sqrt of negative".into());
-            }
-            let mut dims = [0i8; 8];
-            for (i, dim) in dims.iter_mut().enumerate() {
-                if args[0].dims[i] % 2 != 0 {
-                    return Err("Cannot take sqrt of this unit".into());
-                }
-                *dim = args[0].dims[i] / 2;
-            }
-            Ok(Quantity {
-                value: args[0].value.sqrt(),
-                dims,
-            })
-        },
-    },
-    Builtin {
-        name: "ln",
-        arity: Arity::Fixed(1),
-        func: |a| scalar_op(a, f64::ln),
-    },
-    Builtin {
-        name: "log",
-        arity: Arity::Fixed(1),
-        func: |a| scalar_op(a, f64::log10),
-    },
-    Builtin {
-        name: "not",
-        arity: Arity::Fixed(1),
-        func: |a| scalar_op(a, |v| !(v as u64) as f64),
-    },
-    Builtin {
-        name: "and",
-        arity: Arity::Fixed(2),
-        func: |a| {
-            if !a[0].is_scalar() || !a[1].is_scalar() {
-                return Err("Expected scalars".into());
-            }
-            Ok(Quantity::scalar(
-                ((a[0].value as u64) & (a[1].value as u64)) as f64,
-            ))
-        },
-    },
-    Builtin {
-        name: "or",
-        arity: Arity::Fixed(2),
-        func: |a| {
-            if !a[0].is_scalar() || !a[1].is_scalar() {
-                return Err("Expected scalars".into());
-            }
-            Ok(Quantity::scalar(
-                ((a[0].value as u64) | (a[1].value as u64)) as f64,
-            ))
-        },
-    },
-    Builtin {
-        name: "xor",
-        arity: Arity::Fixed(2),
-        func: |a| {
-            if !a[0].is_scalar() || !a[1].is_scalar() {
-                return Err("Expected scalars".into());
-            }
-            Ok(Quantity::scalar(
-                ((a[0].value as u64) ^ (a[1].value as u64)) as f64,
-            ))
-        },
-    },
-    Builtin {
-        name: "lshift",
-        arity: Arity::Fixed(2),
-        func: |a| {
-            if !a[0].is_scalar() || !a[1].is_scalar() {
-                return Err("Expected scalars".into());
-            }
-            Ok(Quantity::scalar(
-                ((a[0].value as u64) << (a[1].value as u64)) as f64,
-            ))
-        },
-    },
-    Builtin {
-        name: "rshift",
-        arity: Arity::Fixed(2),
-        func: |a| {
-            if !a[0].is_scalar() || !a[1].is_scalar() {
-                return Err("Expected scalars".into());
-            }
-            Ok(Quantity::scalar(
-                ((a[0].value as u64) >> (a[1].value as u64)) as f64,
-            ))
-        },
-    },
-    Builtin {
-        name: "round",
-        arity: Arity::Fixed(2),
-        func: |a| {
-            if !a[1].is_scalar() {
-                return Err("Precision must be scalar".into());
-            }
-            let m = 10.0f64.powf(a[1].value.round());
-            Ok(Quantity {
-                value: (a[0].value * m).round() / m,
-                dims: a[0].dims,
-            })
-        },
-    },
-    Builtin {
-        name: "floor",
-        arity: Arity::Fixed(1),
-        func: |a| {
-            Ok(Quantity {
-                value: a[0].value.floor(),
-                dims: a[0].dims,
-            })
-        },
-    },
-    Builtin {
-        name: "ceil",
-        arity: Arity::Fixed(1),
-        func: |a| {
-            Ok(Quantity {
-                value: a[0].value.ceil(),
-                dims: a[0].dims,
-            })
-        },
-    },
-    Builtin {
-        name: "exp",
-        arity: Arity::Fixed(1),
-        func: |a| scalar_op(a, f64::exp),
-    },
-    Builtin {
-        name: "clamp",
-        arity: Arity::Fixed(3),
-        func: |a| {
-            if a[0].dims != a[1].dims || a[0].dims != a[2].dims {
-                return Err("Dimension mismatch".into());
-            }
-            Ok(Quantity {
-                value: a[0].value.clamp(a[1].value, a[2].value),
-                dims: a[0].dims,
-            })
-        },
-    },
-    Builtin {
-        name: "max",
-        arity: Arity::Variadic,
-        func: |a| aggregate(a, |v| v.iter().cloned().fold(f64::NEG_INFINITY, f64::max)),
-    },
-    Builtin {
-        name: "min",
-        arity: Arity::Variadic,
-        func: |a| aggregate(a, |v| v.iter().cloned().fold(f64::INFINITY, f64::min)),
-    },
-    Builtin {
-        name: "sum",
-        arity: Arity::Variadic,
-        func: |a| aggregate(a, |v| v.iter().sum()),
-    },
-    Builtin {
-        name: "avg",
-        arity: Arity::Variadic,
-        func: |a| aggregate(a, |v| v.iter().sum::<f64>() / v.len() as f64),
-    },
-];
-
-pub const CONSTANTS: &[(&str, Quantity)] = &[
-    (
-        "pi",
-        Quantity {
-            value: std::f64::consts::PI,
-            dims: [0; 8],
-        },
-    ),
-    (
-        "e",
-        Quantity {
-            value: std::f64::consts::E,
-            dims: [0; 8],
-        },
-    ),
-    (
-        "c",
-        Quantity {
-            value: 299_792_458.0,
-            dims: VELOCITY,
-        },
-    ),
-    (
-        "G",
-        Quantity {
-            value: 6.674_30e-11,
-            dims: GRAVITATIONAL_CONSTANT,
-        },
-    ),
-    (
-        "planck",
-        Quantity {
-            value: 6.626_070_15e-34,
-            dims: ACTION,
-        },
-    ),
-    (
-        "k_b",
-        Quantity {
-            value: 1.380_649e-23,
-            dims: BOLTZMANN_CONSTANT,
-        },
-    ),
-    (
-        "Na",
-        Quantity {
-            value: 6.022_140_76e23,
-            dims: AVOGADRO_CONSTANT,
-        },
-    ),
-    (
-        "g0",
-        Quantity {
-            value: 9.806_65,
-            dims: ACCELERATION,
-        },
-    ),
-];
-
-pub fn is_protected(name: &str) -> bool {
-    CONSTANTS.iter().any(|(n, _)| *n == name)
-        || UNITS.iter().any(|(n, _)| *n == name)
-        || BUILTINS.iter().any(|b| b.name == name)
+macro_rules! builtin {
+    ($name:expr, $arity:expr, $func:expr) => {
+        Builtin {
+            name: $name,
+            arity: $arity,
+            func: $func,
+        }
+    };
 }
 
+/// List of all built-in mathematical and bitwise functions.
+pub const BUILTINS: &[Builtin] = &[
+    builtin!("sin", Arity::Fixed(1), |a| trig(a, f64::sin)),
+    builtin!("cos", Arity::Fixed(1), |a| trig(a, f64::cos)),
+    builtin!("tan", Arity::Fixed(1), |a| trig(a, f64::tan)),
+    builtin!("asin", Arity::Fixed(1), |a| inv_trig(a, f64::asin)),
+    builtin!("acos", Arity::Fixed(1), |a| inv_trig(a, f64::acos)),
+    builtin!("atan", Arity::Fixed(1), |a| inv_trig(a, f64::atan)),
+    builtin!("abs", Arity::Fixed(1), |a| {
+        Ok(Quantity {
+            value: a[0].value.abs(),
+            dims: a[0].dims,
+        })
+    }),
+    builtin!("sqrt", Arity::Fixed(1), |args| {
+        if args[0].value < 0.0 {
+            return Err("Sqrt of negative".into());
+        }
+        let d = args[0].dims;
+        if d.length % 2 != 0 || d.mass % 2 != 0 || d.time % 2 != 0 || d.current % 2 != 0 
+           || d.temperature % 2 != 0 || d.amount % 2 != 0 || d.intensity % 2 != 0 || d.angle % 2 != 0 {
+            return Err("Cannot take sqrt of this unit".into());
+        }
+        let dims = Dimensions {
+            length: d.length / 2,
+            mass: d.mass / 2,
+            time: d.time / 2,
+            current: d.current / 2,
+            temperature: d.temperature / 2,
+            amount: d.amount / 2,
+            intensity: d.intensity / 2,
+            angle: d.angle / 2,
+        };
+        Ok(Quantity {
+            value: args[0].value.sqrt(),
+            dims,
+        })
+    }),
+    builtin!("ln", Arity::Fixed(1), |a| scalar_op(a, f64::ln)),
+    builtin!("log", Arity::Fixed(1), |a| scalar_op(a, f64::log10)),
+    builtin!("not", Arity::Fixed(1), |a| scalar_op(a, |v| !(v as u64) as f64)),
+    builtin!("and", Arity::Fixed(2), |a| {
+        if !a[0].is_scalar() || !a[1].is_scalar() {
+            return Err("Expected scalars".into());
+        }
+        Ok(Quantity::scalar(((a[0].value as u64) & (a[1].value as u64)) as f64))
+    }),
+    builtin!("or", Arity::Fixed(2), |a| {
+        if !a[0].is_scalar() || !a[1].is_scalar() {
+            return Err("Expected scalars".into());
+        }
+        Ok(Quantity::scalar(((a[0].value as u64) | (a[1].value as u64)) as f64))
+    }),
+    builtin!("xor", Arity::Fixed(2), |a| {
+        if !a[0].is_scalar() || !a[1].is_scalar() {
+            return Err("Expected scalars".into());
+        }
+        Ok(Quantity::scalar(((a[0].value as u64) ^ (a[1].value as u64)) as f64))
+    }),
+    builtin!("lshift", Arity::Fixed(2), |a| {
+        if !a[0].is_scalar() || !a[1].is_scalar() {
+            return Err("Expected scalars".into());
+        }
+        Ok(Quantity::scalar(((a[0].value as u64) << (a[1].value as u64)) as f64))
+    }),
+    builtin!("rshift", Arity::Fixed(2), |a| {
+        if !a[0].is_scalar() || !a[1].is_scalar() {
+            return Err("Expected scalars".into());
+        }
+        Ok(Quantity::scalar(((a[0].value as u64) >> (a[1].value as u64)) as f64))
+    }),
+    builtin!("round", Arity::Fixed(2), |a| {
+        if !a[1].is_scalar() {
+            return Err("Precision must be scalar".into());
+        }
+        let m = 10.0f64.powf(a[1].value.round());
+        Ok(Quantity {
+            value: (a[0].value * m).round() / m,
+            dims: a[0].dims,
+        })
+    }),
+    builtin!("floor", Arity::Fixed(1), |a| {
+        Ok(Quantity {
+            value: a[0].value.floor(),
+            dims: a[0].dims,
+        })
+    }),
+    builtin!("ceil", Arity::Fixed(1), |a| {
+        Ok(Quantity {
+            value: a[0].value.ceil(),
+            dims: a[0].dims,
+        })
+    }),
+    builtin!("exp", Arity::Fixed(1), |a| scalar_op(a, f64::exp)),
+    builtin!("clamp", Arity::Fixed(3), |a| {
+        if a[0].dims != a[1].dims || a[0].dims != a[2].dims {
+            return Err("Dimension mismatch".into());
+        }
+        Ok(Quantity {
+            value: a[0].value.clamp(a[1].value, a[2].value),
+            dims: a[0].dims,
+        })
+    }),
+    builtin!("max", Arity::Variadic, |a| aggregate(a, |v| v.iter().cloned().fold(f64::NEG_INFINITY, f64::max))),
+    builtin!("min", Arity::Variadic, |a| aggregate(a, |v| v.iter().cloned().fold(f64::INFINITY, f64::min))),
+    builtin!("sum", Arity::Variadic, |a| aggregate(a, |v| v.iter().sum())),
+    builtin!("avg", Arity::Variadic, |a| aggregate(a, |v| v.iter().sum::<f64>() / v.len() as f64)),
+];
+
+/// Physical constants.
+pub const CONSTANTS: &[(&str, Quantity)] = &[
+    ("pi", Quantity { value: std::f64::consts::PI, dims: Dimensions::SCALAR }),
+    ("e", Quantity { value: std::f64::consts::E, dims: Dimensions::SCALAR }),
+    ("c", Quantity { value: 299_792_458.0, dims: VELOCITY }),
+    ("G", Quantity { value: 6.674_30e-11, dims: GRAVITATIONAL_CONSTANT }),
+    ("planck", Quantity { value: 6.626_070_15e-34, dims: ACTION }),
+    ("k_b", Quantity { value: 1.380_649e-23, dims: BOLTZMANN_CONSTANT }),
+    ("Na", Quantity { value: 6.022_140_76e23, dims: AVOGADRO_CONSTANT }),
+    ("g0", Quantity { value: 9.806_65, dims: ACCELERATION }),
+];
+
+/// Special formatting keywords.
+pub const FORMATTERS: &[&str] = &["hex", "bin"];
+
+/// Resolves a name to a static quantity (constant, unit, or formatter).
+pub fn resolve_static_var(name: &str) -> Option<Quantity> {
+    if FORMATTERS.contains(&name) {
+        return Some(Quantity::scalar(1.0));
+    }
+    if let Some((_, val)) = CONSTANTS.iter().find(|(n, _)| *n == name) {
+        return Some(*val);
+    }
+    if let Some(u) = UNITS.iter().find(|u| u.name == name) {
+        return Some(u.quantity);
+    }
+    None
+}
+
+/// Returns true if a name is protected and cannot be assigned to.
+pub fn is_protected(name: &str) -> bool {
+    resolve_static_var(name).is_some() || BUILTINS.iter().any(|b| b.name == name)
+}
+
+/// Formats a numeric value based on a formatter keyword.
 pub fn format_as(name: &str, value: f64) -> Option<String> {
+    if !FORMATTERS.contains(&name) {
+        return None;
+    }
     match name {
         "hex" => Some(format!("0x{:x}", value as u64)),
         "bin" => Some(format!("0b{:b}", value as u64)),

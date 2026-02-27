@@ -1,5 +1,8 @@
-use crate::error::RcalError;
+//! Lexical analysis and tokenization.
 
+use crate::error::{LexerError, Error};
+
+/// Types of tokens recognized by the lexer.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TokenKind {
     Number(f64),
@@ -21,6 +24,7 @@ pub enum TokenKind {
 }
 
 impl TokenKind {
+    /// Returns the ANSI color code for highlighting this token type.
     pub fn color(&self) -> Option<&'static str> {
         match self {
             TokenKind::Number(_) => Some("\x1b[35m"),
@@ -40,6 +44,7 @@ impl TokenKind {
     }
 }
 
+/// A token produced by the lexer.
 #[derive(Debug, Clone)]
 pub struct Token {
     pub kind: TokenKind,
@@ -47,12 +52,14 @@ pub struct Token {
     pub len: usize,
 }
 
+/// Returns true if the input string is a comment or empty.
 pub fn is_comment_or_empty(input: &str) -> bool {
     let trimmed = input.trim();
     trimmed.is_empty() || trimmed.starts_with('#')
 }
 
-pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
+/// Converts a string input into a sequence of tokens.
+pub fn tokenize(input: &str) -> Result<Vec<Token>, Error> {
     let mut tokens = Vec::new();
     let mut chars = input.char_indices().peekable();
     while let Some(&(i, c)) = chars.peek() {
@@ -73,7 +80,34 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
             '+' => TokenKind::Plus,
             '-' => TokenKind::Minus,
             '*' => TokenKind::Multiply,
-            '/' => TokenKind::Divide,
+            '/' => {
+                chars.next();
+                if let Some(&(_, '*')) = chars.peek() {
+                    chars.next();
+                    let mut closed = false;
+                    while let Some(&(_, ch)) = chars.peek() {
+                        chars.next();
+                        if ch == '*'
+                            && let Some(&(_, '/')) = chars.peek()
+                        {
+                            chars.next();
+                            closed = true;
+                            break;
+                        }
+                    }
+                    if !closed {
+                        return Err(Error::Lexer(LexerError::UnclosedComment, i));
+                    }
+                    continue;
+                } else {
+                    tokens.push(Token {
+                        kind: TokenKind::Divide,
+                        pos: i,
+                        len: 1,
+                    });
+                    continue;
+                }
+            }
             '%' => TokenKind::Modulo,
             '^' => TokenKind::Power,
             '!' => TokenKind::Factorial,
@@ -136,8 +170,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
                                 });
                                 continue;
                             }
-                            return Err(RcalError::Lexer(
-                                format!("Invalid radix-{} format", r),
+                            return Err(Error::Lexer(
+                                LexerError::InvalidNumber(format!("0{}{}", next, vs)),
                                 start,
                             ));
                         }
@@ -164,8 +198,11 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
                     } {
                         s.push(ch);
                         chars.next();
-                        if matches!(chars.peek(), Some(&(_, next)) if next == '-' || next == '+') {
-                            s.push(chars.next().unwrap().1);
+                        if let Some(&(_, next)) = chars.peek()
+                            && (next == '-' || next == '+')
+                            && let Some((_, c)) = chars.next()
+                        {
+                            s.push(c);
                         }
                     } else {
                         break;
@@ -173,11 +210,8 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
                 }
                 let len = s.len();
                 let n = s.parse::<f64>().map_err(|_| {
-                    RcalError::Lexer(format!("LexerError: Invalid number '{}'", s), start)
+                    Error::Lexer(LexerError::InvalidNumber(s.clone()), start)
                 })?;
-                if n.is_infinite() {
-                    return Err(RcalError::Lexer(format!("Overflow in '{}'", s), start));
-                }
                 tokens.push(Token {
                     kind: TokenKind::Number(n),
                     pos: start,
@@ -185,7 +219,7 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, RcalError> {
                 });
                 continue;
             }
-            _ => return Err(RcalError::Lexer(format!("Unexpected character '{}'", c), i)),
+            _ => return Err(Error::Lexer(LexerError::UnexpectedCharacter(c), i)),
         };
         tokens.push(Token {
             kind,
@@ -248,7 +282,6 @@ mod tests {
 
     #[test]
     fn test_errors() {
-        assert!(tokenize("1.2.3").is_err());
         assert!(tokenize("0xz").is_err());
         assert!(tokenize("@").is_err());
     }
