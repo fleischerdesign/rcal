@@ -7,8 +7,10 @@ rcal is a powerful, lightweight command-line calculator written in Rust. It supp
 - **Professional Unit System**: Full dimensional analysis using SI base units (Length, Mass, Time, etc.).
 - **User-defined functions**: Define your own functions like `f(x, y) = x^2 + y^2` and reuse them.
 - **Script Mode**: Execute complex calculations from `.rcal` files.
-- **Comment Support**: Use `#` for documentation in scripts and interactive mode.
+- **Comment Support**: Use `#` for single-line and `/* ... */` for multi-line comments.
 - **Dimensional Safety**: Prevents impossible calculations like `5m + 10s`.
+- **Absolute Temperature**: Correct handling of units with offsets (e.g., `20degC in K`).
+- **Library & Binary**: Can be used as a standalone CLI or integrated as a Rust library.
 - **Case-Sensitivity**: Correct handling of physical units (e.g., `Pa`, `Hz`, `N`, `J`).
 - **Implicit Multiplication**: Natural syntax support like `10m / 2s` or `2pi`.
 - **Arithmetic operations**: addition, subtraction, multiplication, division, modulo, and exponentiation.
@@ -33,6 +35,27 @@ cargo build --release
 ```
 
 The executable will be available at `target/release/rcal`.
+
+## Library Usage
+
+You can also use `rcal` as a library in your own Rust projects. Add it to your `Cargo.toml`:
+
+```toml
+[dependencies]
+rcal = { git = "https://github.com/fleischerdesign/rcal.git" }
+```
+
+Example usage:
+
+```rust
+use rcal::Calculator;
+
+fn main() {
+    let mut calc = Calculator::new();
+    let (res, _) = calc.eval("100degC in K").unwrap();
+    println!("Result: {}", res); // 373.15 K
+}
+```
 
 ## Usage
 
@@ -77,13 +100,15 @@ Scripts support multiple lines and comments using `#`. Error reports will includ
 Units are case-sensitive. `rcal` performs full dimensional analysis on all calculations.
 
 - **Length**: `m`, `cm`, `mm`, `km`, `inch`, `ft`
-- **Mass**: `kg`, `g`
-- **Time**: `s`, `min`, `h`
-- **Pressure**: `bar`, `atm`
-- **Energy**: `Wh`, `kWh`, `eV`
+- **Mass**: `kg`, `g`, `mg`
+- **Time**: `s`, `ms`, `us`, `ns`, `min`, `h`
+- **Temperature**: `K`, `degC`
+- **Pressure**: `bar`, `atm`, `Pa`, `hPa`, `kPa`, `MPa`
+- **Energy**: `Wh`, `kWh`, `eV`, `J`, `kJ`, `MJ`
+- **Power**: `W`, `mW`, `kW`, `MW`
 - **Volume**: `l` (Liter)
 - **Angles**: `rad`, `deg`
-- **Derived Units**: `N` (Newton), `J` (Joule), `W` (Watt), `Pa` (Pascal), `Hz` (Hertz)
+- **Derived Units**: `N` (Newton), `Hz` (Hertz)
 
 ### Operations
 
