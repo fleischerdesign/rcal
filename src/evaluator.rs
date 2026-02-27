@@ -4,7 +4,7 @@ use crate::{
     ast::{BinOp, Expr, Node, UnOp},
     builtins::{Arity, BUILTINS, is_protected, resolve_static_var},
     calculator::UserFunction,
-    error::{MathError, Error},
+    error::{Error, MathError},
     unit::{Quantity, UNITS},
 };
 use std::collections::HashMap;
@@ -40,7 +40,10 @@ impl<'a> Scope<'a> {
         if let Some(v) = resolve_static_var(name) {
             return Some(v);
         }
-        self.vars.get(name).copied().or_else(|| self.parent.and_then(|p| p.get_var(name)))
+        self.vars
+            .get(name)
+            .copied()
+            .or_else(|| self.parent.and_then(|p| p.get_var(name)))
     }
 
     /// Inserts a variable into the local scope.
@@ -50,7 +53,10 @@ impl<'a> Scope<'a> {
 
     /// Resolves a function name, searching up the hierarchy.
     pub fn get_func(&self, name: &str) -> Option<UserFunction> {
-        self.funcs.get(name).cloned().or_else(|| self.parent.and_then(|p| p.get_func(name)))
+        self.funcs
+            .get(name)
+            .cloned()
+            .or_else(|| self.parent.and_then(|p| p.get_func(name)))
     }
 
     /// Inserts a function into the local scope.
@@ -76,17 +82,13 @@ impl<'a> Default for Scope<'a> {
 }
 
 /// Evaluates an AST node within a given scope.
-pub fn evaluate(
-    node: &Node,
-    scope: &mut Scope,
-) -> Result<Quantity, Error> {
+pub fn evaluate(node: &Node, scope: &mut Scope) -> Result<Quantity, Error> {
     let pos = node.pos;
     match &node.expr {
         Expr::Number(n) => Ok(Quantity::scalar(*n)),
-        Expr::Variable(name) => {
-            scope.get_var(name)
-                .ok_or_else(|| Error::Math(MathError::UnknownVariable(name.clone()), pos))
-        }
+        Expr::Variable(name) => scope
+            .get_var(name)
+            .ok_or_else(|| Error::Math(MathError::UnknownVariable(name.clone()), pos)),
         Expr::Assign(name, e) => {
             if is_protected(name) {
                 return Err(Error::Math(MathError::ProtectedName(name.clone()), pos));
@@ -117,7 +119,10 @@ pub fn evaluate(
             if let Some(f) = scope.get_func(name) {
                 if vs.len() != f.params.len() {
                     return Err(Error::Math(
-                        MathError::ArityMismatch { expected: f.params.len(), actual: vs.len() },
+                        MathError::ArityMismatch {
+                            expected: f.params.len(),
+                            actual: vs.len(),
+                        },
                         pos,
                     ));
                 }
@@ -132,7 +137,10 @@ pub fn evaluate(
                 match b.arity {
                     Arity::Fixed(n) if vs.len() != n => {
                         return Err(Error::Math(
-                            MathError::ArityMismatch { expected: n, actual: vs.len() },
+                            MathError::ArityMismatch {
+                                expected: n,
+                                actual: vs.len(),
+                            },
                             pos,
                         ));
                     }
@@ -158,7 +166,10 @@ pub fn evaluate(
                 }
                 BinOp::Mod => {
                     if !rv.is_scalar() || !lv.is_scalar() {
-                        return Err(Error::Math(MathError::NonScalarOperation("Modulo".into()), pos));
+                        return Err(Error::Math(
+                            MathError::NonScalarOperation("Modulo".into()),
+                            pos,
+                        ));
                     }
                     if rv.value == 0.0 {
                         Err(Error::Math(MathError::ModuloByZero, pos))
@@ -168,22 +179,35 @@ pub fn evaluate(
                 }
                 BinOp::Pow => {
                     if !rv.is_scalar() {
-                        return Err(Error::Math(MathError::NonScalarOperation("Exponentiation".into()), pos));
+                        return Err(Error::Math(
+                            MathError::NonScalarOperation("Exponentiation".into()),
+                            pos,
+                        ));
                     }
-                    lv.pow(rv.value).map_err(|e| Error::Math(MathError::Generic(e), pos))
+                    lv.pow(rv.value)
+                        .map_err(|e| Error::Math(MathError::Generic(e), pos))
                 }
             }
         }
         Expr::Factorial(e) => {
             let v = evaluate(e, scope)?;
             if !v.is_scalar() {
-                return Err(Error::Math(MathError::NonScalarOperation("Factorial".into()), pos));
+                return Err(Error::Math(
+                    MathError::NonScalarOperation("Factorial".into()),
+                    pos,
+                ));
             }
             if v.value < 0.0 || v.value.fract() != 0.0 {
-                return Err(Error::Math(MathError::Generic("Factorial needs non-negative integer".to_string()), pos));
+                return Err(Error::Math(
+                    MathError::Generic("Factorial needs non-negative integer".to_string()),
+                    pos,
+                ));
             }
             if v.value > 170.0 {
-                return Err(Error::Math(MathError::Overflow("Factorial result too large".to_string()), pos));
+                return Err(Error::Math(
+                    MathError::Overflow("Factorial result too large".to_string()),
+                    pos,
+                ));
             }
             let mut r = 1.0;
             for i in 1..=(v.value as u64) {
@@ -253,10 +277,7 @@ mod tests {
     use crate::lexer::tokenize;
     use crate::parser::Parser;
 
-    fn eval_str(
-        input: &str,
-        scope: &mut Scope,
-    ) -> Result<Quantity, Error> {
+    fn eval_str(input: &str, scope: &mut Scope) -> Result<Quantity, Error> {
         let toks = tokenize(input).unwrap();
         let mut p = Parser::new(toks);
         let ast = p.parse_expr().unwrap();
@@ -300,9 +321,12 @@ mod tests {
         let mut scope = Scope::new();
         eval_str("f(x) = y = x + 1", &mut scope).unwrap();
         eval_str("f(10)", &mut scope).unwrap();
-        
+
         let res = eval_str("y", &mut scope);
-        assert!(res.is_err(), "Variable 'y' should not be visible in global scope");
+        assert!(
+            res.is_err(),
+            "Variable 'y' should not be visible in global scope"
+        );
     }
 
     #[test]
@@ -310,7 +334,7 @@ mod tests {
         let mut scope = Scope::new();
         let res = eval_str("0degC in K", &mut scope).unwrap();
         assert_eq!(res.value, 273.15);
-        
+
         let res = eval_str("100degC in K", &mut scope).unwrap();
         assert_eq!(res.value, 373.15);
 

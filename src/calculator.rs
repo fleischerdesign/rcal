@@ -1,5 +1,5 @@
 use crate::ast::{Expr, Node};
-use crate::error::{ParserError, Error};
+use crate::error::{Error, ParserError};
 use crate::evaluator::{Scope, evaluate};
 use crate::lexer::{TokenKind, tokenize};
 use crate::parser::Parser;

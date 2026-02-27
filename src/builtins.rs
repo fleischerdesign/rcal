@@ -1,8 +1,8 @@
 //! Built-in functions, constants, and formatting logic.
 
 use crate::unit::{
-    ACCELERATION, ACTION, ANGLE, AVOGADRO_CONSTANT, BOLTZMANN_CONSTANT, GRAVITATIONAL_CONSTANT,
-    Quantity, UNITS, VELOCITY, Dimensions,
+    ACCELERATION, ACTION, ANGLE, AVOGADRO_CONSTANT, BOLTZMANN_CONSTANT, Dimensions,
+    GRAVITATIONAL_CONSTANT, Quantity, UNITS, VELOCITY,
 };
 
 /// Arity of a function (number of expected arguments).
@@ -91,8 +91,15 @@ pub const BUILTINS: &[Builtin] = &[
             return Err("Sqrt of negative".into());
         }
         let d = args[0].dims;
-        if d.length % 2 != 0 || d.mass % 2 != 0 || d.time % 2 != 0 || d.current % 2 != 0 
-           || d.temperature % 2 != 0 || d.amount % 2 != 0 || d.intensity % 2 != 0 || d.angle % 2 != 0 {
+        if d.length % 2 != 0
+            || d.mass % 2 != 0
+            || d.time % 2 != 0
+            || d.current % 2 != 0
+            || d.temperature % 2 != 0
+            || d.amount % 2 != 0
+            || d.intensity % 2 != 0
+            || d.angle % 2 != 0
+        {
             return Err("Cannot take sqrt of this unit".into());
         }
         let dims = Dimensions {
@@ -112,36 +119,47 @@ pub const BUILTINS: &[Builtin] = &[
     }),
     builtin!("ln", Arity::Fixed(1), |a| scalar_op(a, f64::ln)),
     builtin!("log", Arity::Fixed(1), |a| scalar_op(a, f64::log10)),
-    builtin!("not", Arity::Fixed(1), |a| scalar_op(a, |v| !(v as u64) as f64)),
+    builtin!("not", Arity::Fixed(1), |a| scalar_op(a, |v| !(v as u64)
+        as f64)),
     builtin!("and", Arity::Fixed(2), |a| {
         if !a[0].is_scalar() || !a[1].is_scalar() {
             return Err("Expected scalars".into());
         }
-        Ok(Quantity::scalar(((a[0].value as u64) & (a[1].value as u64)) as f64))
+        Ok(Quantity::scalar(
+            ((a[0].value as u64) & (a[1].value as u64)) as f64,
+        ))
     }),
     builtin!("or", Arity::Fixed(2), |a| {
         if !a[0].is_scalar() || !a[1].is_scalar() {
             return Err("Expected scalars".into());
         }
-        Ok(Quantity::scalar(((a[0].value as u64) | (a[1].value as u64)) as f64))
+        Ok(Quantity::scalar(
+            ((a[0].value as u64) | (a[1].value as u64)) as f64,
+        ))
     }),
     builtin!("xor", Arity::Fixed(2), |a| {
         if !a[0].is_scalar() || !a[1].is_scalar() {
             return Err("Expected scalars".into());
         }
-        Ok(Quantity::scalar(((a[0].value as u64) ^ (a[1].value as u64)) as f64))
+        Ok(Quantity::scalar(
+            ((a[0].value as u64) ^ (a[1].value as u64)) as f64,
+        ))
     }),
     builtin!("lshift", Arity::Fixed(2), |a| {
         if !a[0].is_scalar() || !a[1].is_scalar() {
             return Err("Expected scalars".into());
         }
-        Ok(Quantity::scalar(((a[0].value as u64) << (a[1].value as u64)) as f64))
+        Ok(Quantity::scalar(
+            ((a[0].value as u64) << (a[1].value as u64)) as f64,
+        ))
     }),
     builtin!("rshift", Arity::Fixed(2), |a| {
         if !a[0].is_scalar() || !a[1].is_scalar() {
             return Err("Expected scalars".into());
         }
-        Ok(Quantity::scalar(((a[0].value as u64) >> (a[1].value as u64)) as f64))
+        Ok(Quantity::scalar(
+            ((a[0].value as u64) >> (a[1].value as u64)) as f64,
+        ))
     }),
     builtin!("round", Arity::Fixed(2), |a| {
         if !a[1].is_scalar() {
@@ -175,22 +193,79 @@ pub const BUILTINS: &[Builtin] = &[
             dims: a[0].dims,
         })
     }),
-    builtin!("max", Arity::Variadic, |a| aggregate(a, |v| v.iter().cloned().fold(f64::NEG_INFINITY, f64::max))),
-    builtin!("min", Arity::Variadic, |a| aggregate(a, |v| v.iter().cloned().fold(f64::INFINITY, f64::min))),
+    builtin!("max", Arity::Variadic, |a| aggregate(a, |v| v
+        .iter()
+        .cloned()
+        .fold(f64::NEG_INFINITY, f64::max))),
+    builtin!("min", Arity::Variadic, |a| aggregate(a, |v| v
+        .iter()
+        .cloned()
+        .fold(f64::INFINITY, f64::min))),
     builtin!("sum", Arity::Variadic, |a| aggregate(a, |v| v.iter().sum())),
-    builtin!("avg", Arity::Variadic, |a| aggregate(a, |v| v.iter().sum::<f64>() / v.len() as f64)),
+    builtin!("avg", Arity::Variadic, |a| aggregate(a, |v| v
+        .iter()
+        .sum::<f64>()
+        / v.len() as f64)),
 ];
 
 /// Physical constants.
 pub const CONSTANTS: &[(&str, Quantity)] = &[
-    ("pi", Quantity { value: std::f64::consts::PI, dims: Dimensions::SCALAR }),
-    ("e", Quantity { value: std::f64::consts::E, dims: Dimensions::SCALAR }),
-    ("c", Quantity { value: 299_792_458.0, dims: VELOCITY }),
-    ("G", Quantity { value: 6.674_30e-11, dims: GRAVITATIONAL_CONSTANT }),
-    ("planck", Quantity { value: 6.626_070_15e-34, dims: ACTION }),
-    ("k_b", Quantity { value: 1.380_649e-23, dims: BOLTZMANN_CONSTANT }),
-    ("Na", Quantity { value: 6.022_140_76e23, dims: AVOGADRO_CONSTANT }),
-    ("g0", Quantity { value: 9.806_65, dims: ACCELERATION }),
+    (
+        "pi",
+        Quantity {
+            value: std::f64::consts::PI,
+            dims: Dimensions::SCALAR,
+        },
+    ),
+    (
+        "e",
+        Quantity {
+            value: std::f64::consts::E,
+            dims: Dimensions::SCALAR,
+        },
+    ),
+    (
+        "c",
+        Quantity {
+            value: 299_792_458.0,
+            dims: VELOCITY,
+        },
+    ),
+    (
+        "G",
+        Quantity {
+            value: 6.674_30e-11,
+            dims: GRAVITATIONAL_CONSTANT,
+        },
+    ),
+    (
+        "planck",
+        Quantity {
+            value: 6.626_070_15e-34,
+            dims: ACTION,
+        },
+    ),
+    (
+        "k_b",
+        Quantity {
+            value: 1.380_649e-23,
+            dims: BOLTZMANN_CONSTANT,
+        },
+    ),
+    (
+        "Na",
+        Quantity {
+            value: 6.022_140_76e23,
+            dims: AVOGADRO_CONSTANT,
+        },
+    ),
+    (
+        "g0",
+        Quantity {
+            value: 9.806_65,
+            dims: ACCELERATION,
+        },
+    ),
 ];
 
 /// Special formatting keywords.

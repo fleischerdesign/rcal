@@ -1,6 +1,6 @@
 //! Lexical analysis and tokenization.
 
-use crate::error::{LexerError, Error};
+use crate::error::{Error, LexerError};
 
 /// Types of tokens recognized by the lexer.
 #[derive(Debug, Clone, PartialEq)]
@@ -209,9 +209,9 @@ pub fn tokenize(input: &str) -> Result<Vec<Token>, Error> {
                     }
                 }
                 let len = s.len();
-                let n = s.parse::<f64>().map_err(|_| {
-                    Error::Lexer(LexerError::InvalidNumber(s.clone()), start)
-                })?;
+                let n = s
+                    .parse::<f64>()
+                    .map_err(|_| Error::Lexer(LexerError::InvalidNumber(s.clone()), start))?;
                 tokens.push(Token {
                     kind: TokenKind::Number(n),
                     pos: start,

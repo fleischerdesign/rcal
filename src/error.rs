@@ -81,7 +81,11 @@ impl fmt::Display for MathError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             MathError::DimensionMismatch { expected, actual } => {
-                write!(f, "Dimension mismatch: expected {}, got {}", expected, actual)
+                write!(
+                    f,
+                    "Dimension mismatch: expected {}, got {}",
+                    expected, actual
+                )
             }
             MathError::UnknownVariable(name) => write!(f, "Unknown variable '{}'", name),
             MathError::UnknownFunction(name) => write!(f, "Unknown function '{}'", name),

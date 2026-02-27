@@ -47,8 +47,7 @@ impl Cli {
                         }
                     }
                     Err(e) => {
-                        crate::error::Error::Cli(format!("Failed to read file: {}", e))
-                            .report();
+                        crate::error::Error::Cli(format!("Failed to read file: {}", e)).report();
                     }
                 }
             } else {
@@ -71,7 +70,8 @@ impl Cli {
         let h_path = Self::history_path();
         if let Some(ref path) = h_path {
             match rl.load_history(path) {
-                Err(ReadlineError::Io(ref io_err)) if io_err.kind() == std::io::ErrorKind::NotFound => {}
+                Err(ReadlineError::Io(ref io_err))
+                    if io_err.kind() == std::io::ErrorKind::NotFound => {}
                 Err(e) => {
                     crate::error::Error::Cli(format!("Failed to load history: {}", e)).report();
                 }
@@ -141,11 +141,7 @@ impl Cli {
     }
 
     /// Handles the result of an evaluation, including special formatting for `Convert`.
-    fn handle_result(
-        &self,
-        v: crate::unit::Quantity,
-        expr: crate::ast::Expr,
-    ) {
+    fn handle_result(&self, v: crate::unit::Quantity, expr: crate::ast::Expr) {
         if matches!(expr, Expr::Assign(_, _)) || matches!(expr, Expr::FnDefine(_, _, _)) {
             return;
         }

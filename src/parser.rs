@@ -1,7 +1,7 @@
 //! Parsing and AST construction.
 
 use crate::ast::{BinOp, Expr, Node, UnOp};
-use crate::error::{ParserError, Error};
+use crate::error::{Error, ParserError};
 use crate::lexer::{Token, TokenKind};
 
 /// Recursive descent parser for the rcal language.
@@ -114,7 +114,10 @@ impl Parser {
                 }
             }
         } else if self.peek().kind == TokenKind::Assign {
-            return Err(Error::Parser(ParserError::InvalidAssignment, self.cur().pos));
+            return Err(Error::Parser(
+                ParserError::InvalidAssignment,
+                self.cur().pos,
+            ));
         }
         self.parse_binary(Self::parse_term, &[TokenKind::Plus, TokenKind::Minus])
     }

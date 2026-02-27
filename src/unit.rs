@@ -207,31 +207,111 @@ impl Neg for Quantity {
 }
 
 // Fundamental Dimensions
-pub const LENGTH: Dimensions = Dimensions { length: 1, ..Dimensions::SCALAR };
-pub const MASS: Dimensions = Dimensions { mass: 1, ..Dimensions::SCALAR };
-pub const TIME: Dimensions = Dimensions { time: 1, ..Dimensions::SCALAR };
-pub const CURRENT: Dimensions = Dimensions { current: 1, ..Dimensions::SCALAR };
-pub const TEMPERATURE: Dimensions = Dimensions { temperature: 1, ..Dimensions::SCALAR };
-pub const AMOUNT_OF_SUBSTANCE: Dimensions = Dimensions { amount: 1, ..Dimensions::SCALAR };
-pub const LUMINOUS_INTENSITY: Dimensions = Dimensions { intensity: 1, ..Dimensions::SCALAR };
-pub const ANGLE: Dimensions = Dimensions { angle: 1, ..Dimensions::SCALAR };
+pub const LENGTH: Dimensions = Dimensions {
+    length: 1,
+    ..Dimensions::SCALAR
+};
+pub const MASS: Dimensions = Dimensions {
+    mass: 1,
+    ..Dimensions::SCALAR
+};
+pub const TIME: Dimensions = Dimensions {
+    time: 1,
+    ..Dimensions::SCALAR
+};
+pub const CURRENT: Dimensions = Dimensions {
+    current: 1,
+    ..Dimensions::SCALAR
+};
+pub const TEMPERATURE: Dimensions = Dimensions {
+    temperature: 1,
+    ..Dimensions::SCALAR
+};
+pub const AMOUNT_OF_SUBSTANCE: Dimensions = Dimensions {
+    amount: 1,
+    ..Dimensions::SCALAR
+};
+pub const LUMINOUS_INTENSITY: Dimensions = Dimensions {
+    intensity: 1,
+    ..Dimensions::SCALAR
+};
+pub const ANGLE: Dimensions = Dimensions {
+    angle: 1,
+    ..Dimensions::SCALAR
+};
 
 // Derived Dimensions
-pub const AREA: Dimensions = Dimensions { length: 2, ..Dimensions::SCALAR };
-pub const VOLUME: Dimensions = Dimensions { length: 3, ..Dimensions::SCALAR };
-pub const VELOCITY: Dimensions = Dimensions { length: 1, time: -1, ..Dimensions::SCALAR };
-pub const ACCELERATION: Dimensions = Dimensions { length: 1, time: -2, ..Dimensions::SCALAR };
-pub const FORCE: Dimensions = Dimensions { length: 1, mass: 1, time: -2, ..Dimensions::SCALAR };
-pub const ENERGY: Dimensions = Dimensions { length: 2, mass: 1, time: -2, ..Dimensions::SCALAR };
-pub const POWER: Dimensions = Dimensions { length: 2, mass: 1, time: -3, ..Dimensions::SCALAR };
-pub const PRESSURE: Dimensions = Dimensions { length: -1, mass: 1, time: -2, ..Dimensions::SCALAR };
-pub const FREQUENCY: Dimensions = Dimensions { time: -1, ..Dimensions::SCALAR };
+pub const AREA: Dimensions = Dimensions {
+    length: 2,
+    ..Dimensions::SCALAR
+};
+pub const VOLUME: Dimensions = Dimensions {
+    length: 3,
+    ..Dimensions::SCALAR
+};
+pub const VELOCITY: Dimensions = Dimensions {
+    length: 1,
+    time: -1,
+    ..Dimensions::SCALAR
+};
+pub const ACCELERATION: Dimensions = Dimensions {
+    length: 1,
+    time: -2,
+    ..Dimensions::SCALAR
+};
+pub const FORCE: Dimensions = Dimensions {
+    length: 1,
+    mass: 1,
+    time: -2,
+    ..Dimensions::SCALAR
+};
+pub const ENERGY: Dimensions = Dimensions {
+    length: 2,
+    mass: 1,
+    time: -2,
+    ..Dimensions::SCALAR
+};
+pub const POWER: Dimensions = Dimensions {
+    length: 2,
+    mass: 1,
+    time: -3,
+    ..Dimensions::SCALAR
+};
+pub const PRESSURE: Dimensions = Dimensions {
+    length: -1,
+    mass: 1,
+    time: -2,
+    ..Dimensions::SCALAR
+};
+pub const FREQUENCY: Dimensions = Dimensions {
+    time: -1,
+    ..Dimensions::SCALAR
+};
 
 // Physical Constant Dimensions
-pub const GRAVITATIONAL_CONSTANT: Dimensions = Dimensions { length: 3, mass: -1, time: -2, ..Dimensions::SCALAR };
-pub const ACTION: Dimensions = Dimensions { length: 2, mass: 1, time: -1, ..Dimensions::SCALAR };
-pub const BOLTZMANN_CONSTANT: Dimensions = Dimensions { length: 2, mass: 1, time: -2, temperature: -1, ..Dimensions::SCALAR };
-pub const AVOGADRO_CONSTANT: Dimensions = Dimensions { amount: -1, ..Dimensions::SCALAR };
+pub const GRAVITATIONAL_CONSTANT: Dimensions = Dimensions {
+    length: 3,
+    mass: -1,
+    time: -2,
+    ..Dimensions::SCALAR
+};
+pub const ACTION: Dimensions = Dimensions {
+    length: 2,
+    mass: 1,
+    time: -1,
+    ..Dimensions::SCALAR
+};
+pub const BOLTZMANN_CONSTANT: Dimensions = Dimensions {
+    length: 2,
+    mass: 1,
+    time: -2,
+    temperature: -1,
+    ..Dimensions::SCALAR
+};
+pub const AVOGADRO_CONSTANT: Dimensions = Dimensions {
+    amount: -1,
+    ..Dimensions::SCALAR
+};
 
 /// A named unit of measurement with a conversion factor and optional offset.
 #[derive(Debug, Clone, Copy)]
@@ -334,8 +414,14 @@ mod tests {
 
     #[test]
     fn test_quantity_mul() {
-        let q1 = Quantity { value: 2.0, dims: LENGTH };
-        let q2 = Quantity { value: 3.0, dims: LENGTH };
+        let q1 = Quantity {
+            value: 2.0,
+            dims: LENGTH,
+        };
+        let q2 = Quantity {
+            value: 3.0,
+            dims: LENGTH,
+        };
         let res = q1 * q2;
         assert_eq!(res.value, 6.0);
         assert_eq!(res.dims, AREA);
@@ -343,8 +429,14 @@ mod tests {
 
     #[test]
     fn test_quantity_add_err() {
-        let q1 = Quantity { value: 2.0, dims: LENGTH };
-        let q2 = Quantity { value: 3.0, dims: MASS };
+        let q1 = Quantity {
+            value: 2.0,
+            dims: LENGTH,
+        };
+        let q2 = Quantity {
+            value: 3.0,
+            dims: MASS,
+        };
         assert!((q1 + q2).is_err());
     }
 
