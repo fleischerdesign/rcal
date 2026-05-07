@@ -28,6 +28,12 @@
           shellHook = ''
             echo "Entering Rust development environment..."
             echo "Available tools: cargo, rustc, rustfmt, clippy, rust-analyzer"
+
+            # Activate git hooks
+            if git rev-parse --git-dir > /dev/null 2>&1; then
+              git config core.hooksPath .githooks
+              echo "Git hooks activated (.githooks/)"
+            fi
           '';
         };
       }

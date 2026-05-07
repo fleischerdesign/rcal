@@ -2,6 +2,60 @@
 
 rcal is a powerful, lightweight command-line calculator written in Rust. It supports a wide range of mathematical operations, functions, variables, and precise error reporting.
 
+## Development
+
+### Branching Strategy
+
+This project follows a lightweight Git Flow model:
+
+- **`main`** — Stable production branch. Only merged from `develop` via PR. Protected: requires status checks and prohibits direct pushes.
+- **`develop`** — Integration branch. All feature work merges here via PR. Protected: requires status checks and PR review.
+- **`feature/*`**, **`fix/*`**, **`refactor/*`**, **`docs/*`**, **`chore/*`** — Short-lived branches created from `develop` and merged back via PR.
+
+```text
+main          ●─────●─────●  (releases)
+              ↑     ↑     ↑
+develop       ●──●──●──●──●  (integration)
+              ↑  ↑  ↑
+feature/x     ●──●  │
+feature/y         ●──●
+```
+
+### Commit Conventions
+
+All commits must follow the [Conventional Commits](https://www.conventionalcommits.org/) format:
+
+```
+type(scope): description
+```
+
+Allowed types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `ci`, `style`, `perf`
+
+### Git Hooks
+
+This project uses Git hooks for pre-commit validation. To activate them:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+If using the Nix flake (`nix develop`), hooks are activated automatically.
+
+- **`pre-commit`**: Runs `cargo fmt --check` and `cargo clippy -- -D warnings`.
+- **`commit-msg`**: Validates that the commit message follows Conventional Commits format.
+
+### CI Pipeline
+
+On every PR and push to `main`, GitHub Actions runs:
+
+| Job | Command |
+|---|---|
+| **Format** | `cargo fmt --all -- --check` |
+| **Clippy** | `cargo clippy -- -D warnings` |
+| **Test** | `cargo test` |
+
+All three checks must pass before merging.
+
 ## Features
 
 - **Professional Unit System**: Full dimensional analysis using SI base units (Length, Mass, Time, etc.).
