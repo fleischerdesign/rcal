@@ -36,12 +36,4 @@ jobs:
             --head main \
             --title "chore: sync develop with main" \
             --body "Automated merge-back after push to main.")
-          for i in $(seq 1 30); do
-            sleep 30
-            if gh pr merge "$PR" --merge 2>/dev/null; then
-              echo "Merged"
-              exit 0
-            fi
-          done
-          echo "Timed out waiting for CI"
-          exit 1
+          gh pr merge "$PR" --merge
