@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+COMMIT_MSG_FILE="$1"
+COMMIT_MSG="$(cat "$COMMIT_MSG_FILE")"
+
+# Skip merge commits
+if echo "$COMMIT_MSG" | grep -qE '^Merge'; then
+  exit 0
+fi
+
+# Conventional commit format: type(scope?): description
+# Allowed types: feat, fix, refactor, docs, test, chore, ci, style, perf
+PATTERN='^(feat|fix|refactor|docs|test|chore|ci|style|perf)(\(.+\))?!?: .+'
+
+if ! echo "$COMMIT_MSG" | head -1 | grep -qE "$PATTERN"; then
+  echo "ERROR: Commit message does not follow Conventional Commits format."
+  echo ""
+  echo "Expected format: type(scope): description"
+  echo "Examples:"
+  echo "  feat(parser): add support for custom operators"
+  echo "  fix: resolve overflow in factorial"
+  echo "  docs: update README with examples"
+  echo ""
+  echo "Allowed types: feat, fix, refactor, docs, test, chore, ci, style, perf"
+  exit 1
+fi
