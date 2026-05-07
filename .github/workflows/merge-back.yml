@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   merge-back:
     name: Sync develop
@@ -16,7 +23,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          if git merge-base --is-ancestor origin/develop origin/main; then
+          if git merge-base --is-ancestor origin/main origin/develop; then
             echo "develop already up to date"
             exit 0
           fi
