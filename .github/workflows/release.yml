@@ -1,12 +1,11 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*'
+  release:
+    types: [published]
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -71,13 +70,12 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v7
 
-      - name: Create Release
+      - name: Upload Release Assets
         uses: softprops/action-gh-release@v3
         with:
           files: |
             rcal-linux/rcal-linux
             rcal-macos/rcal-macos
             rcal-windows.exe/rcal-windows.exe
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
