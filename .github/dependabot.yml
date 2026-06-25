@@ -2,8 +2,20 @@ version: 2
 updates:
   - package-ecosystem: "cargo"
     directory: "/"
+    target-branch: develop
     schedule:
       interval: "weekly"
     commit-message:
       prefix: "chore"
       include: "scope"
+
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: '"$target"'
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+    labels:
+      - dependencies
+      - automated
