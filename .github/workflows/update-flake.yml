@@ -19,7 +19,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v22
 
       - name: Update Flake Lock
-        uses: DeterminateSystems/update-flake-lock@v24
+        uses: DeterminateSystems/update-flake-lock@v28
         with:
           pr-title: "chore(nix): update flake.lock"
           pr-labels: |
