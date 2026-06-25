@@ -11,7 +11,7 @@ updates:
 
   - package-ecosystem: github-actions
     directory: /
-    target-branch: '"$target"'
+    target-branch: develop
     schedule:
       interval: weekly
       day: monday
