@@ -4,36 +4,7 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-  pull-requests: write
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  merge-back:
-    name: Sync develop
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Sync develop with main
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if git merge-base --is-ancestor origin/main origin/develop; then
-            echo "develop already up to date"
-            exit 0
-          fi
-          if gh pr list --base develop --head main --state open --json number -q '.[0].number' | grep -q .; then
-            echo "PR already exists"
-            exit 0
-          fi
-          PR=$(gh pr create \
-            --base develop \
-            --head main \
-            --title "chore: sync develop with main" \
-            --body "Automated merge-back after push to main.")
-          gh pr merge "$PR" --merge
+  sync:
+    uses: fleischerdesign/workflows/.github/workflows/merge-back.yml@v1
+    secrets: inherit
