@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.15.1](https://github.com/fleischerdesign/rcal/compare/rcal-v0.15.0...rcal-v0.15.1) (2026-06-25)
+
+
+### Bug Fixes
+
+* **ci:** correct dependabot target-branch interpolation ([fbec853](https://github.com/fleischerdesign/rcal/commit/fbec8532c702545b81e00c3f67e0e618f295ea68))
+
 ## [0.15.0](https://github.com/fleischerdesign/rcal/compare/rcal-v0.14.0...rcal-v0.15.0) (2026-06-25)
 
 
