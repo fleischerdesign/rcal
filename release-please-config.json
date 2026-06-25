@@ -1,7 +1,7 @@
 {
   "packages": {
     ".": {
-      "package-type": "rust",
+      "release-type": "rust",
       "changelog-path": "CHANGELOG.md",
       "bump-minor-pre-major": true,
       "bump-patch-pre-major": true
