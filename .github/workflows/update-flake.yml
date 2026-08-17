@@ -11,5 +11,5 @@ permissions:
 
 jobs:
   update-flake:
-    uses: fleischerdesign/workflows/.github/workflows/update-flake.yml@v1
+    uses: fleischerdesign/workflows/.github/workflows/update-flake.yml@v3
     secrets: inherit
