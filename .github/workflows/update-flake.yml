@@ -5,6 +5,10 @@ on:
     - cron: '0 0 * * 1'
   workflow_dispatch:
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   update-flake:
     uses: fleischerdesign/workflows/.github/workflows/update-flake.yml@v1
